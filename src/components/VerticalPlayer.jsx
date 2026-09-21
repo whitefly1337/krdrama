@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronUp, Heart, Share2, MessageCircle } from "lucide-react";
+import HlsVideo from "@/components/HlsVideo";
 
 export default function VerticalPlayer({ episodes, startIndex = 0, onLocked }) {
   const [index, setIndex] = useState(startIndex);
@@ -61,7 +62,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, onLocked }) {
           className="relative h-[calc(100vh-4rem)] w-full snap-start snap-always overflow-hidden"
           style={{ display: i === index ? "block" : "none" }}
         >
-          <video
+          <HlsVideo
             ref={(el) => (videoRefs.current[i] = el)}
             src={ep.video_url}
             className="h-full w-full object-cover"

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import HlsVideo from "@/components/HlsVideo";
 
 export default function HorizontalPlayer({ episodes, startIndex = 0 }) {
   const [index, setIndex] = useState(startIndex);
@@ -11,7 +12,7 @@ export default function HorizontalPlayer({ episodes, startIndex = 0 }) {
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
       <div className="overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
-        <video
+        <HlsVideo
           ref={videoRef}
           key={episode.id}
           src={episode.video_url}
