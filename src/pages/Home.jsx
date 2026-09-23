@@ -85,13 +85,13 @@ export default function Home() {
       <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
           <div className="flex items-center gap-3">
-            <Link to="/">
+            <button onClick={() => window.location.reload()} className="shrink-0">
               <img
                 src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/bf221255d_ChatGPTImage23202617_21_02.png"
                 alt="KRDrama"
-                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                className="h-10 w-10 rounded-lg object-cover"
               />
-            </Link>
+            </button>
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
               <input
