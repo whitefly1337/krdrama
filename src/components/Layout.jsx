@@ -1,14 +1,9 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Home, Crown, Shield, Bookmark, User } from "lucide-react";
+import { Home, Bookmark, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Layout() {
   const location = useLocation();
-  const nav = [
-    { to: "/", label: "Home", icon: Home },
-    { to: "/subscribe", label: "Subscribe", icon: Crown },
-    { to: "/admin", label: "Admin", icon: Shield },
-  ];
   const footerNav = [
     { to: "/", label: "Home", icon: Home },
     { to: "/my", label: "My", icon: Bookmark },
@@ -16,37 +11,6 @@ export default function Layout() {
   ];
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
-      {!location.pathname.startsWith("/watch/") && (
-      <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <img
-              src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/bf221255d_ChatGPTImage23202617_21_02.png"
-              alt="KRDrama"
-              className="h-10 w-10 rounded-lg object-cover"
-            />
-          </Link>
-          <nav className="hidden items-center gap-1 sm:flex">
-            {nav.map((item) => {
-              const active = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
-                    active ? "bg-white/10 text-white" : "text-zinc-400 hover:text-white"
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-      </header>
-      )}
       <main>
         <Outlet />
       </main>

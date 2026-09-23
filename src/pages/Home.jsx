@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import SeriesCard from "@/components/SeriesCard";
 import { Image } from "@/components/ui/image";
 import { Link } from "react-router-dom";
-import { Search, Play, Loader2 } from "lucide-react";
+import { Search, Play, Loader2, SlidersHorizontal } from "lucide-react";
 
 export default function Home() {
   const [series, setSeries] = useState([]);
@@ -81,18 +81,28 @@ export default function Home() {
 
   return (
     <div className="pb-24 sm:pb-10">
-      {/* Search + Genres */}
-      <div className="sticky top-16 z-30 bg-black/80 backdrop-blur-xl">
+      {/* Top bar: logo + search */}
+      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
-          <div className="relative max-w-2xl">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search for more dramas"
-              className="w-full rounded-2xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none backdrop-blur-md transition focus:border-[#bf95f9]/50 focus:bg-white/10"
-            />
+          <div className="flex items-center gap-3">
+            <Link to="/">
+              <img
+                src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/bf221255d_ChatGPTImage23202617_21_02.png"
+                alt="KRDrama"
+                className="h-10 w-10 shrink-0 rounded-lg object-cover"
+              />
+            </Link>
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search for more dramas"
+                className="w-full rounded-full border border-white/15 bg-white/5 py-2.5 pl-11 pr-11 text-sm text-white placeholder-zinc-500 outline-none backdrop-blur-md transition focus:border-[#bf95f9]/50 focus:bg-white/10"
+              />
+              <SlidersHorizontal className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+            </div>
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {genres.map((g) => (
