@@ -45,7 +45,7 @@ export default function Admin() {
   });
 
   const saveSeries = async () => {
-    if (!editing.title) return alert("Введите название");
+    if (!editing.title) return alert("Enter a title");
     try {
       if (editing.id) {
         await base44.entities.Series.update(editing.id, editing);
@@ -54,25 +54,25 @@ export default function Admin() {
         setEditing({ ...created });
       }
       await load();
-      alert("Сохранено");
+      alert("Saved");
     } catch (e) {
       console.error(e);
-      alert("Ошибка сохранения");
+      alert("Save error");
     }
   };
 
   const deleteSeries = async (s) => {
-    if (!confirm(`Удалить «${s.title}»?`)) return;
+    if (!confirm(`Delete "${s.title}"?`)) return;
     await base44.entities.Series.delete(s.id);
     await load();
   };
 
   const addEpisode = async () => {
-    if (!editing?.id) return alert("Сначала сохраните сериал");
+    if (!editing?.id) return alert("Save the series first");
     const num = episodes.length + 1;
     const created = await base44.entities.Episode.create({
       series_id: editing.id,
-      title: `Эпизод ${num}`,
+      title: `Episode ${num}`,
       episode_number: num,
       video_url: "",
       thumbnail_url: "",
@@ -89,11 +89,11 @@ export default function Admin() {
 
   const saveEpisode = async (ep) => {
     await base44.entities.Episode.update(ep.id, ep);
-    alert("Серия сохранена");
+    alert("Episode saved");
   };
 
   const deleteEpisode = async (ep) => {
-    if (!confirm("Удалить серию?")) return;
+    if (!confirm("Delete episode?")) return;
     await base44.entities.Episode.delete(ep.id);
     setEpisodes(episodes.filter((e) => e.id !== ep.id));
   };
@@ -107,7 +107,7 @@ export default function Admin() {
       else if (target === "ep-thumb") updateEpisode(ep, "thumbnail_url", file_url);
     } catch (e) {
       console.error(e);
-      alert("Ошибка загрузки файла");
+      alert("File upload error");
     }
   };
 
@@ -121,22 +121,22 @@ export default function Admin() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 pb-24">
-      <h1 className="text-2xl font-bold text-white">Админка</h1>
-      <p className="text-sm text-zinc-400">Управление сериалами и сериями</p>
+      <h1 className="text-2xl font-bold text-white">Admin</h1>
+      <p className="text-sm text-zinc-400">Manage series and episodes</p>
 
       <div className="mt-6 flex gap-2 border-b border-white/10">
         <button
           onClick={() => setTab("series")}
           className={`px-4 py-2 text-sm font-medium ${tab === "series" ? "border-b-2 border-rose-500 text-white" : "text-zinc-400"}`}
         >
-          Сериалы
+          Series
         </button>
         {editing && (
           <button
             onClick={() => { setTab("episodes"); loadEpisodes(editing.id); }}
             className={`px-4 py-2 text-sm font-medium ${tab === "episodes" ? "border-b-2 border-rose-500 text-white" : "text-zinc-400"}`}
           >
-            Серии
+            Episodes
           </button>
         )}
       </div>
@@ -149,7 +149,7 @@ export default function Admin() {
               onClick={() => { setEditing(blankSeries()); setEpisodes([]); }}
               className="flex w-full items-center gap-2 rounded-lg border border-dashed border-white/20 px-4 py-3 text-sm text-zinc-300 hover:border-rose-500"
             >
-              <Plus className="h-4 w-4" /> Новый сериал
+              <Plus className="h-4 w-4" /> New Series
             </button>
             {series.map((s) => (
               <div key={s.id} className="flex items-center gap-3 rounded-lg bg-white/5 p-3 ring-1 ring-white/5">
@@ -158,13 +158,13 @@ export default function Admin() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-medium text-white">{s.title}</p>
-                  <p className="text-xs text-zinc-500">{s.format} · {s.is_published ? "опубл." : "черновик"}</p>
+                  <p className="text-xs text-zinc-500">{s.format} · {s.is_published ? "published" : "draft"}</p>
                 </div>
                 <button
                   onClick={() => { setEditing(s); }}
                   className="rounded px-2 py-1 text-xs text-rose-400 hover:bg-white/10"
                 >
-                  Изм.
+                  Edit
                 </button>
                 <button onClick={() => deleteSeries(s)} className="text-zinc-500 hover:text-rose-500">
                   <Trash2 className="h-4 w-4" />
@@ -176,59 +176,59 @@ export default function Admin() {
           {/* editor */}
           {editing && (
             <div className="space-y-3 rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
-              <h3 className="text-sm font-semibold text-white">{editing.id ? "Редактировать" : "Новый сериал"}</h3>
-              <Field label="Название">
+              <h3 className="text-sm font-semibold text-white">{editing.id ? "Edit" : "New Series"}</h3>
+              <Field label="Title">
                 <input value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} className={inputCls} />
               </Field>
-              <Field label="Жанр">
+              <Field label="Genre">
                 <input value={editing.genre} onChange={(e) => setEditing({ ...editing, genre: e.target.value })} className={inputCls} />
               </Field>
-              <Field label="Описание">
+              <Field label="Description">
                 <textarea value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} className={inputCls} rows={3} />
               </Field>
-              <Field label="Формат плеера">
+              <Field label="Player format">
                 <select
                   value={editing.format}
                   onChange={(e) => setEditing({ ...editing, format: e.target.value })}
                   className={inputCls}
                 >
-                  <option value="horizontal">Горизонтальный</option>
-                  <option value="vertical">Вертикальный</option>
+                  <option value="horizontal">Horizontal</option>
+                  <option value="vertical">Vertical</option>
                 </select>
               </Field>
-              <Field label="Постер (вертикальный URL)">
+              <Field label="Poster (vertical URL)">
                 <div className="flex gap-2">
                   <input value={editing.poster_url} onChange={(e) => setEditing({ ...editing, poster_url: e.target.value })} className={inputCls} />
                   <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-white/10 px-3 text-xs text-white">
-                    <Upload className="h-3 w-3" /> Файл
+                    <Upload className="h-3 w-3" /> File
                     <input type="file" className="hidden" onChange={(e) => e.target.files[0] && uploadFile(e.target.files[0], "series-poster")} />
                   </label>
                 </div>
               </Field>
-              <Field label="Бэкдроп (горизонтальный URL)">
+              <Field label="Backdrop (horizontal URL)">
                 <div className="flex gap-2">
                   <input value={editing.backdrop_url} onChange={(e) => setEditing({ ...editing, backdrop_url: e.target.value })} className={inputCls} />
                   <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-white/10 px-3 text-xs text-white">
-                    <Upload className="h-3 w-3" /> Файл
+                    <Upload className="h-3 w-3" /> File
                     <input type="file" className="hidden" onChange={(e) => e.target.files[0] && uploadFile(e.target.files[0], "series-backdrop")} />
                   </label>
                 </div>
               </Field>
-              <Field label="Трейлер (URL видео)">
+              <Field label="Trailer (video URL)">
                 <input value={editing.trailer_url} onChange={(e) => setEditing({ ...editing, trailer_url: e.target.value })} className={inputCls} />
               </Field>
               <div className="flex gap-4">
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input type="checkbox" checked={editing.is_featured} onChange={(e) => setEditing({ ...editing, is_featured: e.target.checked })} />
-                  Баннер на главной
+                  Featured on home
                 </label>
                 <label className="flex items-center gap-2 text-sm text-zinc-300">
                   <input type="checkbox" checked={editing.is_published} onChange={(e) => setEditing({ ...editing, is_published: e.target.checked })} />
-                  Опубликован
+                  Published
                 </label>
               </div>
               <button onClick={saveSeries} className="flex w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-700">
-                <Save className="h-4 w-4" /> Сохранить сериал
+                <Save className="h-4 w-4" /> Save Series
               </button>
             </div>
           )}
@@ -238,21 +238,21 @@ export default function Admin() {
       {tab === "episodes" && editing && (
         <div className="mt-6 space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-white">Серии: {editing.title}</h3>
+            <h3 className="text-sm font-semibold text-white">Episodes: {editing.title}</h3>
             <button onClick={addEpisode} className="flex items-center gap-1 rounded-lg bg-white/10 px-3 py-2 text-sm text-white hover:bg-white/20">
-              <Plus className="h-4 w-4" /> Добавить серию
+              <Plus className="h-4 w-4" /> Add Episode
             </button>
           </div>
           {episodes.map((ep) => (
             <div key={ep.id} className="rounded-xl bg-white/5 p-4 ring-1 ring-white/10">
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="Название">
+                <Field label="Title">
                   <input value={ep.title} onChange={(e) => updateEpisode(ep, "title", e.target.value)} className={inputCls} />
                 </Field>
-                <Field label="Номер">
+                <Field label="Number">
                   <input type="number" value={ep.episode_number} onChange={(e) => updateEpisode(ep, "episode_number", parseInt(e.target.value) || 1)} className={inputCls} />
                 </Field>
-                <Field label="Видео (URL)">
+                <Field label="Video (URL)">
                   <div className="flex gap-2">
                     <input value={ep.video_url} onChange={(e) => updateEpisode(ep, "video_url", e.target.value)} className={inputCls} />
                     <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-white/10 px-3 text-xs text-white">
@@ -261,7 +261,7 @@ export default function Admin() {
                     </label>
                   </div>
                 </Field>
-                <Field label="Превью (URL)">
+                <Field label="Thumbnail (URL)">
                   <div className="flex gap-2">
                     <input value={ep.thumbnail_url} onChange={(e) => updateEpisode(ep, "thumbnail_url", e.target.value)} className={inputCls} />
                     <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-white/10 px-3 text-xs text-white">
@@ -270,20 +270,20 @@ export default function Admin() {
                     </label>
                   </div>
                 </Field>
-                <Field label="Длительность (сек)">
+                <Field label="Duration (sec)">
                   <input type="number" value={ep.duration} onChange={(e) => updateEpisode(ep, "duration", parseInt(e.target.value) || 0)} className={inputCls} />
                 </Field>
                 <label className="flex items-center gap-2 pt-6 text-sm text-zinc-300">
                   <input type="checkbox" checked={ep.is_free} onChange={(e) => updateEpisode(ep, "is_free", e.target.checked)} />
-                  Бесплатная серия
+                  Free episode
                 </label>
               </div>
               <div className="mt-3 flex gap-2">
                 <button onClick={() => saveEpisode(ep)} className="flex items-center gap-1 rounded-lg bg-rose-600 px-3 py-2 text-xs font-bold text-white">
-                  <Save className="h-3 w-3" /> Сохранить
+                  <Save className="h-3 w-3" /> Save
                 </button>
                 <button onClick={() => deleteEpisode(ep)} className="flex items-center gap-1 rounded-lg bg-white/10 px-3 py-2 text-xs text-white hover:bg-rose-600">
-                  <Trash2 className="h-3 w-3" /> Удалить
+                  <Trash2 className="h-3 w-3" /> Delete
                 </button>
               </div>
             </div>

@@ -27,7 +27,6 @@ export default function VerticalPlayer({ episodes, startIndex = 0, onLocked }) {
     if (index > 0) setIndex(index - 1);
   };
 
-  // wheel / swipe navigation
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -100,7 +99,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, onLocked }) {
 
           {/* bottom info */}
           <div className="absolute bottom-6 left-3 right-20 text-white">
-            <p className="text-sm font-semibold">Эпизод {ep.episode_number}</p>
+            <p className="text-sm font-semibold">Episode {ep.episode_number}</p>
             <h2 className="line-clamp-2 text-lg font-bold leading-tight">{ep.title}</h2>
             <p className="mt-1 line-clamp-2 text-xs text-zinc-300">{ep.series_title || ""}</p>
           </div>
@@ -112,7 +111,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, onLocked }) {
               className="absolute left-1/2 top-3 -translate-x-1/2 flex flex-col items-center gap-1 text-white/80"
             >
               <ChevronUp className="h-6 w-6 animate-bounce" />
-              <span className="text-[10px]">Следующая серия</span>
+              <span className="text-[10px]">Next episode</span>
             </button>
           )}
         </div>

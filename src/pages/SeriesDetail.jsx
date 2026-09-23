@@ -37,8 +37,8 @@ export default function SeriesDetail() {
   if (!series) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-lg font-semibold text-white">Сериал не найден</p>
-        <Link to="/" className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">На главную</Link>
+        <p className="text-lg font-semibold text-white">Series not found</p>
+        <Link to="/" className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">Back to Home</Link>
       </div>
     );
   }
@@ -55,7 +55,7 @@ export default function SeriesDetail() {
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
         <div className="absolute left-4 top-4">
           <Link to="/" className="flex items-center gap-1 rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur">
-            <ArrowLeft className="h-4 w-4" /> Назад
+            <ArrowLeft className="h-4 w-4" /> Back
           </Link>
         </div>
       </div>
@@ -71,20 +71,20 @@ export default function SeriesDetail() {
             <p className="mt-3 max-w-2xl text-sm text-zinc-300">{series.description}</p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-zinc-400">
               <span className="rounded-md bg-white/10 px-2 py-1">
-                {series.format === "vertical" ? "Вертикальный формат" : "Горизонтальный формат"}
+                {series.format === "vertical" ? "Vertical format" : "Horizontal format"}
               </span>
-              <span className="rounded-md bg-white/10 px-2 py-1">{episodes.length} серий</span>
+              <span className="rounded-md bg-white/10 px-2 py-1">{episodes.length} episodes</span>
             </div>
             <Link
               to={`/watch/${series.id}`}
               className="mt-5 inline-flex items-center gap-2 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
             >
-              <Play className="h-4 w-4 fill-white" /> Начать смотреть
+              <Play className="h-4 w-4 fill-white" /> Start Watching
             </Link>
           </div>
         </div>
 
-        <h2 className="mb-3 mt-10 text-lg font-bold text-white">Серии</h2>
+        <h2 className="mb-3 mt-10 text-lg font-bold text-white">Episodes</h2>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {episodes.map((ep) => (
             <Link
@@ -108,9 +108,9 @@ export default function SeriesDetail() {
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs text-zinc-500">Эпизод {ep.episode_number}</p>
+                <p className="text-xs text-zinc-500">Episode {ep.episode_number}</p>
                 <p className="line-clamp-2 text-sm font-medium text-white">{ep.title}</p>
-                {ep.duration > 0 && <p className="mt-1 text-xs text-zinc-500">{Math.round(ep.duration / 60)} мин</p>}
+                {ep.duration > 0 && <p className="mt-1 text-xs text-zinc-500">{Math.round(ep.duration / 60)} min</p>}
               </div>
             </Link>
           ))}

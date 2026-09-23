@@ -24,7 +24,6 @@ export default function Watch() {
         eps.forEach((e) => (e.series_title = s.title));
         setEpisodes(eps);
 
-        // check subscription
         try {
           const me = await base44.auth.me();
           const subs = await base44.entities.Subscription.filter({ user_id: me.id, status: "active" });
@@ -52,8 +51,8 @@ export default function Watch() {
   if (!series) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-lg font-semibold text-white">Сериал не найден</p>
-        <Link to="/" className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">На главную</Link>
+        <p className="text-lg font-semibold text-white">Series not found</p>
+        <Link to="/" className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">Back to Home</Link>
       </div>
     );
   }
@@ -62,24 +61,23 @@ export default function Watch() {
   const startIndex = Math.max(0, episodes.findIndex((e) => e.episode_number === epNum));
   const current = episodes[startIndex];
 
-  // paywall: if no subscription and current episode not free
   if (!hasSub && current && !current.is_free) {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 text-center">
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-600/20">
           <Lock className="h-8 w-8 text-rose-500" />
         </div>
-        <h1 className="text-2xl font-bold text-white">Эта серия доступна по подписке</h1>
+        <h1 className="text-2xl font-bold text-white">This episode requires a subscription</h1>
         <p className="max-w-md text-sm text-zinc-400">
-          Оформите ежемесячную подписку, чтобы смотреть все серии без ограничений.
+          Get a monthly subscription to watch all episodes without limits.
         </p>
         <button
           onClick={() => navigate("/subscribe")}
           className="mt-2 inline-flex items-center gap-2 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white hover:bg-rose-700"
         >
-          <Crown className="h-4 w-4" /> Оформить подписку
+          <Crown className="h-4 w-4" /> Get Subscription
         </button>
-        <Link to={`/series/${id}`} className="text-sm text-zinc-400 underline">Назад к сериалу</Link>
+        <Link to={`/series/${id}`} className="text-sm text-zinc-400 underline">Back to series</Link>
       </div>
     );
   }
@@ -87,8 +85,8 @@ export default function Watch() {
   if (episodes.length === 0) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
-        <p className="text-lg font-semibold text-white">Серии ещё не загружены</p>
-        <Link to={`/series/${id}`} className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">Назад</Link>
+        <p className="text-lg font-semibold text-white">Episodes not yet uploaded</p>
+        <Link to={`/series/${id}`} className="rounded-lg bg-rose-600 px-4 py-2 text-sm text-white">Back</Link>
       </div>
     );
   }

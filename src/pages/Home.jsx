@@ -9,7 +9,7 @@ export default function Home() {
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [activeGenre, setActiveGenre] = useState("Популярные");
+  const [activeGenre, setActiveGenre] = useState("Popular");
   const [heroIndex, setHeroIndex] = useState(0);
 
   useEffect(() => {
@@ -32,12 +32,12 @@ export default function Home() {
 
   const genres = useMemo(() => {
     const unique = [...new Set(series.map((s) => s.genre).filter(Boolean))];
-    return ["Популярные", ...unique];
+    return ["Popular", ...unique];
   }, [series]);
 
   const filtered = useMemo(() => {
     let list = series;
-    if (activeGenre !== "Популярные") {
+    if (activeGenre !== "Popular") {
       list = list.filter((s) => s.genre === activeGenre);
     }
     if (search.trim()) {
@@ -68,16 +68,16 @@ export default function Home() {
   if (series.length === 0) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-lg font-semibold text-white">Каталог пока пуст</p>
-        <p className="text-sm text-zinc-400">Добавьте сериалы в админке, чтобы они появились здесь.</p>
+        <p className="text-lg font-semibold text-white">Catalog is empty</p>
+        <p className="text-sm text-zinc-400">Add series in admin to see them here.</p>
         <Link to="/admin" className="mt-2 rounded-lg bg-[#bf95f9] px-4 py-2 text-sm font-medium text-white">
-          Открыть админку
+          Open Admin
         </Link>
       </div>
     );
   }
 
-  const showHero = !search && activeGenre === "Популярные";
+  const showHero = !search && activeGenre === "Popular";
 
   return (
     <div className="pb-24 sm:pb-10">
@@ -90,8 +90,8 @@ export default function Home() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Поиск дорам..."
-              className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-[#bf95f9]/50 focus:bg-white/10"
+              placeholder="Search for more dramas"
+              className="w-full rounded-2xl border border-white/15 bg-white/5 py-3 pl-11 pr-4 text-sm text-white placeholder-zinc-500 outline-none backdrop-blur-md transition focus:border-[#bf95f9]/50 focus:bg-white/10"
             />
           </div>
           <div className="mt-3 flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -139,7 +139,7 @@ export default function Home() {
                 to={`/watch/${hero.id}`}
                 className="mt-4 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#a8c0ff] to-[#bf95f9] px-7 py-3 text-sm font-bold text-black transition hover:opacity-90"
               >
-                <Play className="h-4 w-4 fill-black" /> Смотреть
+                <Play className="h-4 w-4 fill-black" /> Play
               </Link>
               {featuredList.length > 1 && (
                 <div className="mt-4 flex gap-1.5">
@@ -162,10 +162,10 @@ export default function Home() {
       {/* Grid */}
       <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
         <h2 className="mb-4 text-lg font-bold text-white">
-          {search ? `Результаты (${filtered.length})` : "В тренде"}
+          {search ? `Results (${filtered.length})` : "Trending Now"}
         </h2>
         {filtered.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">Ничего не найдено</p>
+          <p className="py-8 text-center text-sm text-zinc-500">Nothing found</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {filtered.map((s) => (

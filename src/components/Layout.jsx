@@ -5,9 +5,9 @@ import { cn } from "@/lib/utils";
 export default function Layout() {
   const location = useLocation();
   const nav = [
-    { to: "/", label: "Каталог", icon: Home },
-    { to: "/subscribe", label: "Подписка", icon: Crown },
-    { to: "/admin", label: "Админка", icon: Shield },
+    { to: "/", label: "Home", icon: Home },
+    { to: "/subscribe", label: "Subscribe", icon: Crown },
+    { to: "/admin", label: "Admin", icon: Shield },
   ];
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
