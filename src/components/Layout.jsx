@@ -20,9 +20,11 @@ export default function Layout() {
       <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight">
-              <span className="text-rose-500">Drama</span>Pulse
-            </span>
+            <img
+              src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/bf221255d_ChatGPTImage23202617_21_02.png"
+              alt="KRDrama"
+              className="h-10 w-10 rounded-lg object-cover"
+            />
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             {nav.map((item) => {

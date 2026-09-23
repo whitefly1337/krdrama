@@ -60,7 +60,7 @@ export default function Subscribe() {
       <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-600/20">
         <Crown className="h-8 w-8 text-rose-500" />
       </div>
-      <h1 className="text-3xl font-extrabold text-white">DramaPulse Premium</h1>
+      <h1 className="text-3xl font-extrabold text-white">KRDrama Premium</h1>
       <p className="mt-2 text-sm text-zinc-400">Unlimited access to all AI dramas and new episodes.</p>
 
       {current ? (
