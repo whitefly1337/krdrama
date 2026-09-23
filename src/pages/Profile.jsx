@@ -1,15 +1,20 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { User, Crown, LogOut, Mail, Calendar, Coins } from "lucide-react";
+import { User, LogOut, Coins, Gift, Bookmark, Bell, MessageSquare, Settings, Copy, ChevronRight } from "lucide-react";
 import { isNativePlatform } from "@/lib/admob";
+import { getGuestUid } from "@/lib/guest";
+import VipBanner from "@/components/profile/VipBanner";
 
 export default function Profile() {
   const [me, setMe] = useState(null);
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(null);
-  const [transactions, setTransactions] = useState([]);
+  const [guestUid] = useState(getGuestUid);
+  const [copied, setCopied] = useState(false);
+
+  const isGuest = !me;
 
   useEffect(() => {
     (async () => {
@@ -22,12 +27,9 @@ export default function Profile() {
         if (isNativePlatform()) {
           const wallets = await base44.entities.UserWallet.filter({ user_id: user.id });
           setWallet(wallets.length > 0 ? wallets[0] : null);
-          const txns = await base44.entities.CoinTransaction.filter({ user_id: user.id });
-          txns.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
-          setTransactions(txns.slice(0, 20));
         }
       } catch (e) {
-        console.error(e);
+        // Guest user — not authenticated
       } finally {
         setLoading(false);
       }
@@ -38,95 +40,115 @@ export default function Profile() {
     await base44.auth.logout();
   };
 
+  const copyUid = () => {
+    navigator.clipboard?.writeText(guestUid);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-700 border-t-rose-500" />
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-700 border-t-amber-500" />
       </div>
     );
   }
 
+  const displayName = me?.full_name || "Гость";
+
+  const menuItems = [
+    { icon: Gift, label: "Награды", to: "/subscribe" },
+    { icon: Bookmark, label: "Мой список", to: "/my" },
+    { icon: Bell, label: "Уведомления" },
+    { icon: MessageSquare, label: "Обратная связь" },
+    { icon: Settings, label: "Настройки" },
+  ];
+
   return (
-    <div className="mx-auto max-w-md px-4 py-8">
-      <div className="flex flex-col items-center gap-3 pb-6">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-700">
-          <User className="h-10 w-10 text-white" />
+    <div className="mx-auto max-w-md px-4 pb-24 pt-6">
+      {/* User header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-amber-500/20 to-amber-700/20 ring-1 ring-amber-500/30">
+          <User className="h-8 w-8 text-amber-400" />
         </div>
-        <h1 className="text-xl font-bold text-white">{me?.full_name || "User"}</h1>
-      </div>
-
-      <div className="space-y-3">
-        <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-          <Mail className="h-5 w-5 text-zinc-400" />
-          <div>
-            <p className="text-xs text-zinc-500">Email</p>
-            <p className="text-sm font-medium text-white">{me?.email}</p>
-          </div>
+        <div className="flex-1">
+          <h1 className="text-xl font-bold text-white">{displayName}</h1>
+          <button onClick={copyUid} className="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-500">
+            UID: {guestUid}
+            <Copy className="h-3 w-3" />
+            {copied && <span className="text-emerald-400">✓</span>}
+          </button>
         </div>
-
-        <div className="flex items-center gap-3 rounded-xl bg-white/5 p-4">
-          <Crown className="h-5 w-5 text-zinc-400" />
-          <div className="flex-1">
-            <p className="text-xs text-zinc-500">Subscription</p>
-            {sub ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium text-emerald-400">Premium Active</span>
-                {sub.end_date && (
-                  <span className="flex items-center gap-1 text-xs text-zinc-500">
-                    <Calendar className="h-3 w-3" /> until {sub.end_date}
-                  </span>
-                )}
-              </div>
-            ) : (
-              <p className="text-sm font-medium text-zinc-400">No active subscription</p>
-            )}
-          </div>
-        </div>
-
-        {isNativePlatform() && wallet !== null && (
-          <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-4">
-            <Coins className="h-5 w-5 text-amber-400" />
-            <div className="flex-1">
-              <p className="text-xs text-zinc-500">Coin Balance</p>
-              <p className="text-sm font-medium text-amber-400">{wallet.balance || 0} coins</p>
-            </div>
-          </div>
-        )}
-
-        {isNativePlatform() && transactions.length > 0 && (
-          <div className="rounded-xl bg-white/5 p-4">
-            <p className="mb-3 text-xs text-zinc-500">Recent Transactions</p>
-            <div className="space-y-2">
-              {transactions.map((t) => (
-                <div key={t.id} className="flex items-center justify-between text-sm">
-                  <span className="text-zinc-300">
-                    {t.reason === "ad_reward" ? "Ad reward" : "Episode unlock"}
-                  </span>
-                  <span className={t.type === "earned" ? "text-emerald-400" : "text-rose-400"}>
-                    {t.type === "earned" ? "+" : "-"}{t.amount}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!sub && (
+        {isGuest && (
           <Link
-            to="/subscribe"
-            className="flex items-center justify-center gap-2 rounded-xl bg-rose-600 p-4 text-sm font-bold text-white"
+            to="/login"
+            className="rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white ring-1 ring-white/15"
           >
-            <Crown className="h-4 w-4" /> Get Premium
+            Войти
           </Link>
         )}
+      </div>
 
+      {/* Promo text for guests */}
+      {isGuest && (
+        <p className="mt-3 text-sm text-amber-300/80">
+          Получи 35 монет за первый вход!
+        </p>
+      )}
+
+      {/* VIP Banner */}
+      {!sub && <VipBanner />}
+
+      {/* Wallet */}
+      <div className="mt-4 rounded-2xl bg-white/5 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Coins className="h-5 w-5 text-amber-400" />
+            <span className="text-sm font-medium text-white">Мой кошелёк</span>
+          </div>
+          <span className="text-2xl font-bold text-amber-400">{wallet?.balance || 0}</span>
+        </div>
+        {isNativePlatform() && (
+          <button className="mt-3 w-full rounded-full bg-amber-400 py-2.5 text-sm font-bold text-black">
+            Пополнить
+          </button>
+        )}
+      </div>
+
+      {/* Menu list */}
+      <div className="mt-4 space-y-1">
+        {menuItems.map((item) => {
+          const content = (
+            <>
+              <item.icon className="h-5 w-5 text-zinc-400" />
+              <span className="flex-1">{item.label}</span>
+              <ChevronRight className="h-4 w-4 text-zinc-600" />
+            </>
+          );
+          if (item.to) {
+            return (
+              <Link key={item.label} to={item.to} className="flex items-center gap-3 rounded-xl px-2 py-3.5 text-sm text-white hover:bg-white/5">
+                {content}
+              </Link>
+            );
+          }
+          return (
+            <div key={item.label} className="flex items-center gap-3 rounded-xl px-2 py-3.5 text-sm text-white">
+              {content}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Logout for authenticated users */}
+      {me && (
         <button
           onClick={handleLogout}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 p-4 text-sm font-medium text-zinc-300 hover:bg-white/10"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white/5 py-3.5 text-sm font-medium text-zinc-300"
         >
-          <LogOut className="h-4 w-4" /> Log Out
+          <LogOut className="h-4 w-4" /> Выйти
         </button>
-      </div>
+      )}
     </div>
   );
 }
