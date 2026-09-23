@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useNavigate } from "react-router-dom";
-import { Crown, ChevronLeft, Loader2, Tv, Ban, Play, MessageSquare, Lock } from "lucide-react";
+import { Crown, ChevronLeft, Loader2, Tv, Ban, Play, MessageSquare, Lock, CheckCircle2 } from "lucide-react";
+import { IAP_PRODUCTS, isIAPAvailable, purchaseSubscription, restorePurchases } from "@/lib/iap";
+import { checkActiveSubscription } from "@/lib/subscription";
 
 const PLANS = [
   { id: "weekly", label: "Weekly Membership", price: "$4.99", oldPrice: "$7.99", discount: "38% OFF", days: 7 },
-  { id: "monthly", label: "Monthly Membership", price: "$22.99", days: 30 },
-  { id: "yearly", label: "Yearly Membership", price: "$119.00", days: 365 },
+  { id: "monthly", label: "Monthly Membership", price: "$9.99", days: 30 },
+  { id: "yearly", label: "Yearly Membership", price: "$79.99", days: 365 },
 ];
 
 const PRIVILEGES = [
@@ -26,14 +28,15 @@ export default function Subscribe() {
   const [current, setCurrent] = useState(null);
   const [loadingPlan, setLoadingPlan] = useState(null);
   const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const iapReady = isIAPAvailable();
 
   useEffect(() => {
     (async () => {
       try {
-        const me = await base44.auth.me();
-        const subs = await base44.entities.Subscription.filter({ user_id: me.id, status: "active" });
-        const active = subs.find((su) => !su.end_date || new Date(su.end_date) >= new Date());
-        setCurrent(active || null);
+        const active = await checkActiveSubscription();
+        setCurrent(active);
       } catch {
         setCurrent(null);
       } finally {
@@ -43,24 +46,54 @@ export default function Subscribe() {
   }, []);
 
   const subscribe = async (planId) => {
-    const plan = PLANS.find((p) => p.id === planId);
+    setError("");
     setLoadingPlan(planId);
     try {
-      const me = await base44.auth.me();
-      const start = new Date();
-      const end = new Date();
-      end.setDate(end.getDate() + plan.days);
-      await base44.entities.Subscription.create({
-        user_id: me.id,
-        status: "active",
+      const productId = IAP_PRODUCTS[planId];
+      const { receipt, platform } = await purchaseSubscription(productId);
+      const res = await base44.functions.invoke("validateSubscription", {
+        receipt,
+        platform,
         plan: planId,
-        start_date: start.toISOString().slice(0, 10),
-        end_date: end.toISOString().slice(0, 10),
       });
-      setCurrent({ status: "active", end_date: end.toISOString().slice(0, 10), plan: planId });
+      if (res.data?.success) {
+        setCurrent(res.data.subscription);
+        setSuccess(true);
+      } else {
+        setError(res.data?.error || "Validation failed");
+      }
     } catch (e) {
-      console.error(e);
-      alert("Failed to subscribe. Try again later.");
+      setError(e.message || "Purchase failed. Try again later.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
+  const handleRestore = async () => {
+    setError("");
+    setLoadingPlan("restore");
+    try {
+      const purchases = await restorePurchases();
+      if (purchases && purchases.length > 0) {
+        // Try to validate the most recent purchase
+        const latest = purchases[purchases.length - 1];
+        const receipt = latest.receipt || latest.transactionReceipt || JSON.stringify(latest);
+        const platform = window.Capacitor.getPlatform();
+        // Determine plan from product ID
+        const productId = latest.productId || latest.product;
+        const plan = Object.entries(IAP_PRODUCTS).find(([, id]) => id === productId)?.[0] || "monthly";
+        const res = await base44.functions.invoke("validateSubscription", { receipt, platform, plan });
+        if (res.data?.success) {
+          setCurrent(res.data.subscription);
+          setSuccess(true);
+        } else {
+          setError("No active subscriptions found to restore");
+        }
+      } else {
+        setError("No previous purchases found");
+      }
+    } catch (e) {
+      setError(e.message || "Restore failed");
     } finally {
       setLoadingPlan(null);
     }
@@ -82,7 +115,9 @@ export default function Subscribe() {
           <ChevronLeft className="h-6 w-6 text-white" />
         </button>
         <h1 className="text-lg font-bold text-white">VIP</h1>
-        <button className="text-sm text-zinc-400">Restore</button>
+        <button onClick={handleRestore} disabled={loadingPlan !== null} className="text-sm text-zinc-400 disabled:opacity-50">
+          {loadingPlan === "restore" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Restore"}
+        </button>
       </div>
 
       {/* Hero */}
@@ -95,7 +130,23 @@ export default function Subscribe() {
         </div>
       </div>
 
-      {current ? (
+      {success && current ? (
+        <div className="mx-4 rounded-2xl bg-emerald-600/10 p-5 ring-1 ring-emerald-500/30">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+            <p className="text-base font-bold text-emerald-400">Subscription active!</p>
+          </div>
+          <p className="mt-2 text-sm text-zinc-300">
+            Valid until: <span className="font-semibold text-white">{current.end_date}</span>
+          </p>
+          <button
+            onClick={() => navigate("/")}
+            className="mt-4 w-full rounded-full bg-white py-2.5 text-sm font-bold text-black"
+          >
+            Browse Catalog
+          </button>
+        </div>
+      ) : current ? (
         <div className="mx-4 rounded-2xl bg-emerald-600/10 p-5 ring-1 ring-emerald-500/30">
           <p className="text-base font-bold text-emerald-400">Subscription active</p>
           <p className="mt-1 text-sm text-zinc-300">
@@ -153,6 +204,18 @@ export default function Subscribe() {
             ))}
           </div>
         </>
+      )}
+
+      {error && (
+        <div className="mx-4 mt-3 rounded-xl bg-rose-600/15 px-4 py-3 text-sm text-rose-400">
+          {error}
+        </div>
+      )}
+
+      {!iapReady && !current && (
+        <div className="mx-4 mt-3 rounded-xl bg-amber-500/10 px-4 py-3 text-xs text-amber-400">
+          In-app purchases require the native app. Download the app to subscribe.
+        </div>
       )}
 
       {/* VIP Privileges */}

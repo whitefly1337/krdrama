@@ -6,6 +6,7 @@ import HorizontalPlayer from "@/components/HorizontalPlayer";
 import { Loader2 } from "lucide-react";
 import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
 import { getUnlockedEpisodes } from "@/lib/coins";
+import { checkActiveSubscription } from "@/lib/subscription";
 
 export default function Watch() {
   const { id } = useParams();
@@ -29,8 +30,7 @@ export default function Watch() {
 
         try {
           const me = await base44.auth.me();
-          const subs = await base44.entities.Subscription.filter({ user_id: me.id, status: "active" });
-          const active = subs.find((su) => !su.end_date || new Date(su.end_date) >= new Date());
+          const active = await checkActiveSubscription();
           setHasSub(!!active);
           const unlocks = await base44.entities.EpisodeUnlock.filter({ user_id: me.id });
           setUnlockedIds(new Set(unlocks.map((u) => u.episode_id)));
