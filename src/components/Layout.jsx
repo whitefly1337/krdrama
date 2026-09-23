@@ -41,6 +41,7 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
+      {!location.pathname.startsWith("/watch/") && (
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl sm:hidden">
         {nav.map((item) => {
           const active = location.pathname === item.to;
@@ -59,6 +60,7 @@ export default function Layout() {
           );
         })}
       </nav>
+      )}
     </div>
   );
 }

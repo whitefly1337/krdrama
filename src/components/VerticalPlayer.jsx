@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge } from "lucide-react";
 import HlsVideo from "@/components/HlsVideo";
+import EpisodeGrid from "@/components/EpisodeGrid";
 
 const SPEEDS = [0.5, 1, 1.25, 1.5, 2];
 
-export default function VerticalPlayer({ episodes, startIndex = 0, series, onBack }) {
+export default function VerticalPlayer({ episodes, startIndex = 0, series, onBack, hasSub }) {
   const [index, setIndex] = useState(startIndex);
   const [playing, setPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -242,33 +243,14 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
 
       {/* Episode popup */}
       {showEpisodes && (
-        <div className="absolute inset-0 z-50 flex items-end" onClick={() => setShowEpisodes(false)}>
-          <div className="absolute inset-0 bg-black/60" />
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="relative max-h-[55%] w-full overflow-y-auto rounded-t-2xl bg-zinc-900 p-4 pb-6"
-          >
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-            <h3 className="mb-3 text-sm font-bold text-white">Episodes</h3>
-            <div className="space-y-1">
-              {episodes.map((ep, i) => (
-                <button
-                  key={ep.id}
-                  onClick={() => { setIndex(i); setShowEpisodes(false); }}
-                  className={`flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition ${
-                    i === index ? "bg-white/15" : "hover:bg-white/5"
-                  }`}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
-                    {ep.episode_number}
-                  </span>
-                  <span className="text-sm text-white">{ep.title}</span>
-                  {i === index && <span className="ml-auto text-[10px] uppercase text-rose-400">Now playing</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
+        <EpisodeGrid
+          episodes={episodes}
+          currentIndex={index}
+          series={series}
+          hasSub={hasSub}
+          onSelect={(i) => { setIndex(i); setShowEpisodes(false); }}
+          onClose={() => setShowEpisodes(false)}
+        />
       )}
 
       {/* More popup (speed control) */}

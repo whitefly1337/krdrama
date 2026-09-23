@@ -120,3 +120,14 @@
   border: none;
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
 }
+
+/* Equalizer bars for currently-playing episode */
+@keyframes eqbar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar {
+  height: 7px;
+  transform-origin: bottom;
+  animation: eqbar 0.8s ease-in-out infinite;
+}

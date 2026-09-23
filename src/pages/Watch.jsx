@@ -98,6 +98,7 @@ export default function Watch() {
           episodes={episodes}
           startIndex={startIndex}
           series={series}
+          hasSub={hasSub}
           onBack={() => navigate(`/series/${id}`)}
         />
       ) : (
