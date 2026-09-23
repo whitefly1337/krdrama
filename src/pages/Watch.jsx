@@ -92,7 +92,7 @@ export default function Watch() {
   }
 
   return (
-    <div className="pb-20 sm:pb-10">
+    <div className={series.format === "vertical" ? "" : "pb-20 sm:pb-10"}>
       {series.format === "vertical" ? (
         <VerticalPlayer
           episodes={episodes}
