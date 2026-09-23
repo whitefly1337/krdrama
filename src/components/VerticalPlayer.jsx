@@ -101,7 +101,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   };
 
   return (
-    <div ref={containerRef} className="relative h-[calc(100vh-4rem)] w-full overflow-hidden bg-black">
+    <div ref={containerRef} className="relative h-screen w-full overflow-hidden bg-black">
       <HlsVideo
         ref={videoRef}
         src={episode.video_url}
