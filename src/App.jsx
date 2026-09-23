@@ -13,6 +13,8 @@ import SeriesDetail from '@/pages/SeriesDetail';
 import Watch from '@/pages/Watch';
 import Subscribe from '@/pages/Subscribe';
 import Admin from '@/pages/Admin';
+import MyLibrary from '@/pages/MyLibrary';
+import Profile from '@/pages/Profile';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -47,6 +49,8 @@ const AuthenticatedApp = () => {
         <Route path="/watch/:id" element={<Watch />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/admin" element={<Admin />} />
+        <Route path="/my" element={<MyLibrary />} />
+        <Route path="/profile" element={<Profile />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge } from "lucide-react";
+import { base44 } from "@/api/base44Client";
 import HlsVideo from "@/components/HlsVideo";
 import EpisodeGrid from "@/components/EpisodeGrid";
 
@@ -21,6 +22,31 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const episode = episodes[index];
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const me = await base44.auth.me();
+        const libs = await base44.entities.UserLibrary.filter({ user_id: me.id, series_id: series?.id });
+        setBookmarked(libs.length > 0);
+      } catch {}
+    })();
+  }, [series?.id]);
+
+  const toggleBookmark = useCallback(async () => {
+    try {
+      const me = await base44.auth.me();
+      if (bookmarked) {
+        await base44.entities.UserLibrary.deleteMany({ user_id: me.id, series_id: series?.id });
+        setBookmarked(false);
+      } else {
+        await base44.entities.UserLibrary.create({ user_id: me.id, series_id: series?.id });
+        setBookmarked(true);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, [bookmarked, series?.id]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -145,7 +171,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
           {/* Right action rail */}
           <div className="absolute bottom-40 right-3 flex flex-col items-center gap-5">
             <button
-              onClick={(e) => { e.stopPropagation(); setBookmarked((v) => !v); }}
+              onClick={(e) => { e.stopPropagation(); toggleBookmark(); }}
               className="flex flex-col items-center gap-1 text-white"
             >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-md">

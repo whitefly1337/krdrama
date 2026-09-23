@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
-import { Home, Crown, Shield } from "lucide-react";
+import { Home, Crown, Shield, Bookmark, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Layout() {
@@ -8,6 +8,11 @@ export default function Layout() {
     { to: "/", label: "Home", icon: Home },
     { to: "/subscribe", label: "Subscribe", icon: Crown },
     { to: "/admin", label: "Admin", icon: Shield },
+  ];
+  const footerNav = [
+    { to: "/", label: "Home", icon: Home },
+    { to: "/my", label: "My", icon: Bookmark },
+    { to: "/profile", label: "Profile", icon: User },
   ];
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
@@ -45,7 +50,7 @@ export default function Layout() {
       </main>
       {!location.pathname.startsWith("/watch/") && (
       <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl sm:hidden">
-        {nav.map((item) => {
+        {footerNav.map((item) => {
           const active = location.pathname === item.to;
           return (
             <Link
