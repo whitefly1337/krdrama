@@ -11,6 +11,7 @@ export default function Layout() {
   ];
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100">
+      {!location.pathname.startsWith("/watch/") && (
       <header className="sticky top-0 z-40 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2">
@@ -38,6 +39,7 @@ export default function Layout() {
           </nav>
         </div>
       </header>
+      )}
       <main>
         <Outlet />
       </main>
