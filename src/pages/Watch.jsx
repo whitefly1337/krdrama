@@ -5,6 +5,7 @@ import VerticalPlayer from "@/components/VerticalPlayer";
 import HorizontalPlayer from "@/components/HorizontalPlayer";
 import { Loader2 } from "lucide-react";
 import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
+import { getUnlockedEpisodes } from "@/lib/coins";
 
 export default function Watch() {
   const { id } = useParams();
@@ -35,6 +36,7 @@ export default function Watch() {
           setUnlockedIds(new Set(unlocks.map((u) => u.episode_id)));
         } catch {
           setHasSub(false);
+          setUnlockedIds(getUnlockedEpisodes());
         }
       } catch (e) {
         console.error(e);

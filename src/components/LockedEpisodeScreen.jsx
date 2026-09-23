@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import { isNativePlatform, showRewardedVideoAd } from "@/lib/admob";
+import { getBalance, addCoins, spendCoins as spendCoinsLocal, COINS_PER_AD, COINS_PER_EPISODE } from "@/lib/coins";
 import { Lock, Crown, Coins, Play, Loader2 } from "lucide-react";
 
 // Replace with your AdMob Rewarded ad unit ID from the AdMob dashboard
 const AD_UNIT_ID = "ca-app-pub-XXXXXXXXXXXXXXXX/XXXXXXXXXX";
-const COINS_PER_AD = 10;
-const COINS_PER_EPISODE = 50;
 
 export default function LockedEpisodeScreen({ episode, seriesId, onUnlock }) {
   const [balance, setBalance] = useState(null);
@@ -19,14 +17,8 @@ export default function LockedEpisodeScreen({ episode, seriesId, onUnlock }) {
     fetchBalance();
   }, []);
 
-  const fetchBalance = async () => {
-    try {
-      const me = await base44.auth.me();
-      const wallets = await base44.entities.UserWallet.filter({ user_id: me.id });
-      setBalance(wallets.length > 0 ? (wallets[0].balance || 0) : 0);
-    } catch {
-      setBalance(0);
-    }
+  const fetchBalance = () => {
+    setBalance(getBalance());
   };
 
   const handleWatchAd = async () => {
@@ -34,8 +26,8 @@ export default function LockedEpisodeScreen({ episode, seriesId, onUnlock }) {
     setError("");
     try {
       await showRewardedVideoAd(AD_UNIT_ID);
-      const res = await base44.functions.invoke("awardCoins", {});
-      setBalance(res.data.balance);
+      const newBalance = addCoins(COINS_PER_AD);
+      setBalance(newBalance);
     } catch (e) {
       setError("Ad not available. Try again later.");
     } finally {
@@ -47,11 +39,12 @@ export default function LockedEpisodeScreen({ episode, seriesId, onUnlock }) {
     setLoading(true);
     setError("");
     try {
-      const res = await base44.functions.invoke("spendCoins", { episode_id: episode.id });
-      if (res.data.success) {
+      const res = spendCoinsLocal(COINS_PER_EPISODE, episode.id);
+      if (res.success) {
+        setBalance(res.balance);
         onUnlock();
       } else {
-        setError(res.data.error || "Not enough coins");
+        setError(res.error || "Not enough coins");
       }
     } catch (e) {
       setError("Failed to unlock. Try again.");

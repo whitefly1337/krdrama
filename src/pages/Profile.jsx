@@ -4,13 +4,14 @@ import { base44 } from "@/api/base44Client";
 import { User, LogOut, Coins, Gift, Bookmark, Bell, MessageSquare, Settings, Copy, ChevronRight } from "lucide-react";
 import { isNativePlatform } from "@/lib/admob";
 import { getGuestUid } from "@/lib/guest";
+import { getBalance } from "@/lib/coins";
 import VipBanner from "@/components/profile/VipBanner";
 
 export default function Profile() {
   const [me, setMe] = useState(null);
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [wallet, setWallet] = useState(null);
+  const [coinBalance, setCoinBalance] = useState(0);
   const [guestUid] = useState(getGuestUid);
   const [copied, setCopied] = useState(false);
 
@@ -24,13 +25,10 @@ export default function Profile() {
         const subs = await base44.entities.Subscription.filter({ user_id: user.id, status: "active" });
         const active = subs.find((s) => !s.end_date || new Date(s.end_date) >= new Date());
         setSub(active || null);
-        if (isNativePlatform()) {
-          const wallets = await base44.entities.UserWallet.filter({ user_id: user.id });
-          setWallet(wallets.length > 0 ? wallets[0] : null);
-        }
       } catch (e) {
         // Guest user — not authenticated
       } finally {
+        setCoinBalance(getBalance());
         setLoading(false);
       }
     })();
@@ -92,7 +90,7 @@ export default function Profile() {
       {/* Promo text for guests */}
       {isGuest && (
         <p className="mt-3 text-sm text-amber-300/80">
-          Получи 35 монет за первый вход!
+          Бонус 35 монет за первый вход уже начислен!
         </p>
       )}
 
@@ -106,7 +104,7 @@ export default function Profile() {
             <Coins className="h-5 w-5 text-amber-400" />
             <span className="text-sm font-medium text-white">Мой кошелёк</span>
           </div>
-          <span className="text-2xl font-bold text-amber-400">{wallet?.balance || 0}</span>
+          <span className="text-2xl font-bold text-amber-400">{coinBalance}</span>
         </div>
         {isNativePlatform() && (
           <button className="mt-3 w-full rounded-full bg-amber-400 py-2.5 text-sm font-bold text-black">
