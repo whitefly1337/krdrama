@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Gauge } from "lucide-react";
+import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge } from "lucide-react";
 import HlsVideo from "@/components/HlsVideo";
 
 const SPEEDS = [0.5, 1, 1.25, 1.5, 2];
@@ -12,8 +12,10 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   const [currentTime, setCurrentTime] = useState(0);
   const [uiVisible, setUiVisible] = useState(true);
   const [showEpisodes, setShowEpisodes] = useState(false);
-  const [showSpeed, setShowSpeed] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [bookmarked, setBookmarked] = useState(false);
+  const [liked, setLiked] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const videoRef = useRef(null);
   const containerRef = useRef(null);
@@ -119,7 +121,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
       {/* Full UI */}
       {uiVisible && (
         <>
-          {/* Back - bare chevron */}
+          {/* Back */}
           <button
             onClick={(e) => { e.stopPropagation(); onBack?.(); }}
             className="absolute left-4 top-4 text-white drop-shadow-lg"
@@ -127,31 +129,42 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
             <ChevronLeft className="h-7 w-7" />
           </button>
 
-          {/* Center play button when paused */}
-          {!playing && (
-            <button
-              onClick={(e) => { e.stopPropagation(); togglePlay(); }}
-              className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 backdrop-blur-md"
-            >
+          {/* Center play/pause button */}
+          <button
+            onClick={(e) => { e.stopPropagation(); togglePlay(); }}
+            className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/40 backdrop-blur-md"
+          >
+            {playing ? (
+              <Pause className="h-8 w-8 fill-white text-white" />
+            ) : (
               <Play className="h-8 w-8 fill-white text-white" />
-            </button>
-          )}
+            )}
+          </button>
 
           {/* Right action rail */}
           <div className="absolute bottom-40 right-3 flex flex-col items-center gap-5">
-            <button onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-1 text-white">
+            <button
+              onClick={(e) => { e.stopPropagation(); setBookmarked((v) => !v); }}
+              className="flex flex-col items-center gap-1 text-white"
+            >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-md">
-                <Bookmark className="h-6 w-6" />
+                <Bookmark className={`h-6 w-6 ${bookmarked ? "fill-white" : ""}`} />
               </span>
               <span className="text-[11px] font-medium">12K</span>
             </button>
-            <button onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-1 text-white">
+            <button
+              onClick={(e) => { e.stopPropagation(); setLiked((v) => !v); }}
+              className="flex flex-col items-center gap-1 text-white"
+            >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-md">
-                <Heart className="h-6 w-6 fill-rose-500 text-rose-500" />
+                <Heart className={`h-6 w-6 ${liked ? "fill-rose-500 text-rose-500" : ""}`} />
               </span>
               <span className="text-[11px] font-medium">1.1K</span>
             </button>
-            <button onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-1 text-white">
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowMore(true); }}
+              className="flex flex-col items-center gap-1 text-white"
+            >
               <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black/30 backdrop-blur-md">
                 <MoreHorizontal className="h-6 w-6" />
               </span>
@@ -184,7 +197,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
               )}
             </div>
 
-            {/* Seek slider + speed */}
+            {/* Seek slider */}
             <div className="mb-2 flex items-center gap-2">
               <span className="text-[10px] tabular-nums text-white/80">{fmtTime(currentTime)}</span>
               <input
@@ -198,12 +211,6 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
                 className="vplayer-slider flex-1"
               />
               <span className="text-[10px] tabular-nums text-white/80">{fmtTime(duration)}</span>
-              <button
-                onClick={(e) => { e.stopPropagation(); setShowSpeed(true); }}
-                className="ml-1 flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 text-[11px] font-medium text-white"
-              >
-                <Gauge className="h-3 w-3" />{speed}x
-              </button>
             </div>
 
             {/* Episode bar */}
@@ -264,21 +271,23 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
         </div>
       )}
 
-      {/* Speed popup */}
-      {showSpeed && (
-        <div className="absolute inset-0 z-50 flex items-end" onClick={() => setShowSpeed(false)}>
+      {/* More popup (speed control) */}
+      {showMore && (
+        <div className="absolute inset-0 z-50 flex items-end" onClick={() => setShowMore(false)}>
           <div className="absolute inset-0 bg-black/60" />
           <div
             onClick={(e) => e.stopPropagation()}
             className="relative w-full rounded-t-2xl bg-zinc-900 p-4 pb-6"
           >
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-white/20" />
-            <h3 className="mb-3 text-sm font-bold text-white">Playback speed</h3>
+            <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-white">
+              <Gauge className="h-4 w-4" /> Playback speed
+            </h3>
             <div className="flex gap-2">
               {SPEEDS.map((s) => (
                 <button
                   key={s}
-                  onClick={() => { setSpeed(s); setShowSpeed(false); }}
+                  onClick={() => { setSpeed(s); }}
                   className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition ${
                     speed === s ? "bg-white text-black" : "bg-white/10 text-white"
                   }`}
