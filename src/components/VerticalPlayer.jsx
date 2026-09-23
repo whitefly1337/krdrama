@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { isBookmarked, toggleBookmarkUtil } from "@/lib/bookmarks";
 import HlsVideo from "@/components/HlsVideo";
 import EpisodeGrid from "@/components/EpisodeGrid";
 
@@ -24,29 +24,15 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   const episode = episodes[index];
 
   useEffect(() => {
-    (async () => {
-      try {
-        const me = await base44.auth.me();
-        const libs = await base44.entities.UserLibrary.filter({ user_id: me.id, series_id: series?.id });
-        setBookmarked(libs.length > 0);
-      } catch {}
-    })();
+    if (!series?.id) return;
+    isBookmarked(series.id).then(setBookmarked);
   }, [series?.id]);
 
   const toggleBookmark = useCallback(async () => {
-    try {
-      const me = await base44.auth.me();
-      if (bookmarked) {
-        await base44.entities.UserLibrary.deleteMany({ user_id: me.id, series_id: series?.id });
-        setBookmarked(false);
-      } else {
-        await base44.entities.UserLibrary.create({ user_id: me.id, series_id: series?.id });
-        setBookmarked(true);
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, [bookmarked, series?.id]);
+    if (!series?.id) return;
+    const isNow = await toggleBookmarkUtil(series.id);
+    setBookmarked(isNow);
+  }, [series?.id]);
 
   useEffect(() => {
     const video = videoRef.current;

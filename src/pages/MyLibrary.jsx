@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { getBookmarkedSeriesIds } from "@/lib/bookmarks";
 import { base44 } from "@/api/base44Client";
 import { Bookmark, Loader2 } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
@@ -11,9 +12,7 @@ export default function MyLibrary() {
   useEffect(() => {
     (async () => {
       try {
-        const me = await base44.auth.me();
-        const libs = await base44.entities.UserLibrary.filter({ user_id: me.id });
-        const ids = libs.map((l) => l.series_id);
+        const ids = await getBookmarkedSeriesIds();
         if (ids.length === 0) {
           setSeries([]);
           return;
