@@ -3,7 +3,7 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { base44 } from "@/api/base44Client";
 import VerticalPlayer from "@/components/VerticalPlayer";
 import HorizontalPlayer from "@/components/HorizontalPlayer";
-import { Loader2 } from "lucide-react";
+import PenguinLoader from "@/components/PenguinLoader";
 import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
 
 export default function Watch() {
@@ -46,9 +46,7 @@ export default function Watch() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
-      </div>
+      <PenguinLoader />
     );
   }
 

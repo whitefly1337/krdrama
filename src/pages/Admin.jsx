@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Loader2, Plus, Trash2, Film, Upload, Save } from "lucide-react";
+import { Plus, Trash2, Film, Upload, Save } from "lucide-react";
+import PenguinLoader from "@/components/PenguinLoader";
 
 export default function Admin() {
   const [series, setSeries] = useState([]);
@@ -113,9 +114,7 @@ export default function Admin() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
-      </div>
+      <PenguinLoader />
     );
   }
 

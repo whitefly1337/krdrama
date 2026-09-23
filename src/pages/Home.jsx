@@ -3,7 +3,8 @@ import { base44 } from "@/api/base44Client";
 import SeriesCard from "@/components/SeriesCard";
 import { Image } from "@/components/ui/image";
 import { Link } from "react-router-dom";
-import { Search, Play, Loader2, SlidersHorizontal } from "lucide-react";
+import { Search, Play, SlidersHorizontal } from "lucide-react";
+import PenguinLoader from "@/components/PenguinLoader";
 
 export default function Home() {
   const [series, setSeries] = useState([]);
@@ -59,9 +60,7 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-[#bf95f9]" />
-      </div>
+      <PenguinLoader />
     );
   }
 

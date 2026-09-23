@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { User, Crown, LogOut, Mail, Calendar, Coins } from "lucide-react";
+import PenguinLoader from "@/components/PenguinLoader";
 import { isNativePlatform } from "@/lib/admob";
 
 export default function Profile() {
@@ -40,9 +41,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-zinc-700 border-t-rose-500" />
-      </div>
+      <PenguinLoader />
     );
   }
 
