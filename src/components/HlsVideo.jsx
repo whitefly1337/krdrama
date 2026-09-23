@@ -10,6 +10,8 @@ const HlsVideo = forwardRef(function HlsVideo({ src, ...props }, ref) {
   useEffect(() => {
     const video = internalRef.current;
     if (!video || !src) return;
+    // Pause and clear before loading new source to prevent audio bleed
+    video.pause();
     let hls;
     if (src.endsWith(".m3u8") && Hls.isSupported()) {
       hls = new Hls({ enableWorker: true });
@@ -21,7 +23,15 @@ const HlsVideo = forwardRef(function HlsVideo({ src, ...props }, ref) {
       video.src = src;
     }
     return () => {
-      if (hls) hls.destroy();
+      // Synchronously detach + pause to kill audio immediately
+      video.pause();
+      if (hls) {
+        hls.detachMedia();
+        hls.destroy();
+      } else {
+        video.removeAttribute("src");
+        video.load();
+      }
     };
   }, [src]);
 
