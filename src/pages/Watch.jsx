@@ -94,7 +94,12 @@ export default function Watch() {
   return (
     <div className="pb-20 sm:pb-10">
       {series.format === "vertical" ? (
-        <VerticalPlayer episodes={episodes} startIndex={startIndex} />
+        <VerticalPlayer
+          episodes={episodes}
+          startIndex={startIndex}
+          series={series}
+          onBack={() => navigate(`/series/${id}`)}
+        />
       ) : (
         <HorizontalPlayer episodes={episodes} startIndex={startIndex} />
       )}
