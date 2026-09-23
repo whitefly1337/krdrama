@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { User, Crown, LogOut, Mail, Calendar } from "lucide-react";
+import { User, Crown, LogOut, Mail, Calendar, Coins } from "lucide-react";
+import { isNativePlatform } from "@/lib/admob";
 
 export default function Profile() {
-  const navigate = useNavigate();
   const [me, setMe] = useState(null);
   const [sub, setSub] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState(null);
+  const [transactions, setTransactions] = useState([]);
 
   useEffect(() => {
     (async () => {
@@ -17,6 +19,13 @@ export default function Profile() {
         const subs = await base44.entities.Subscription.filter({ user_id: user.id, status: "active" });
         const active = subs.find((s) => !s.end_date || new Date(s.end_date) >= new Date());
         setSub(active || null);
+        if (isNativePlatform()) {
+          const wallets = await base44.entities.UserWallet.filter({ user_id: user.id });
+          setWallet(wallets.length > 0 ? wallets[0] : null);
+          const txns = await base44.entities.CoinTransaction.filter({ user_id: user.id });
+          txns.sort((a, b) => new Date(b.created_date) - new Date(a.created_date));
+          setTransactions(txns.slice(0, 20));
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -73,6 +82,34 @@ export default function Profile() {
             )}
           </div>
         </div>
+
+        {isNativePlatform() && wallet !== null && (
+          <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-amber-500/5 p-4">
+            <Coins className="h-5 w-5 text-amber-400" />
+            <div className="flex-1">
+              <p className="text-xs text-zinc-500">Coin Balance</p>
+              <p className="text-sm font-medium text-amber-400">{wallet.balance || 0} coins</p>
+            </div>
+          </div>
+        )}
+
+        {isNativePlatform() && transactions.length > 0 && (
+          <div className="rounded-xl bg-white/5 p-4">
+            <p className="mb-3 text-xs text-zinc-500">Recent Transactions</p>
+            <div className="space-y-2">
+              {transactions.map((t) => (
+                <div key={t.id} className="flex items-center justify-between text-sm">
+                  <span className="text-zinc-300">
+                    {t.reason === "ad_reward" ? "Ad reward" : "Episode unlock"}
+                  </span>
+                  <span className={t.type === "earned" ? "text-emerald-400" : "text-rose-400"}>
+                    {t.type === "earned" ? "+" : "-"}{t.amount}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {!sub && (
           <Link

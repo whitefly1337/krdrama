@@ -3,7 +3,8 @@ import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom"
 import { base44 } from "@/api/base44Client";
 import VerticalPlayer from "@/components/VerticalPlayer";
 import HorizontalPlayer from "@/components/HorizontalPlayer";
-import { Loader2, Lock, Crown } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
 
 export default function Watch() {
   const { id } = useParams();
@@ -13,6 +14,7 @@ export default function Watch() {
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hasSub, setHasSub] = useState(null);
+  const [unlockedIds, setUnlockedIds] = useState(new Set());
 
   useEffect(() => {
     (async () => {
@@ -29,6 +31,8 @@ export default function Watch() {
           const subs = await base44.entities.Subscription.filter({ user_id: me.id, status: "active" });
           const active = subs.find((su) => !su.end_date || new Date(su.end_date) >= new Date());
           setHasSub(!!active);
+          const unlocks = await base44.entities.EpisodeUnlock.filter({ user_id: me.id });
+          setUnlockedIds(new Set(unlocks.map((u) => u.episode_id)));
         } catch {
           setHasSub(false);
         }
@@ -61,24 +65,13 @@ export default function Watch() {
   const startIndex = Math.max(0, episodes.findIndex((e) => e.episode_number === epNum));
   const current = episodes[startIndex];
 
-  if (!hasSub && current && !current.is_free) {
+  if (!hasSub && current && !current.is_free && !unlockedIds.has(current.id)) {
     return (
-      <div className="flex min-h-[70vh] flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rose-600/20">
-          <Lock className="h-8 w-8 text-rose-500" />
-        </div>
-        <h1 className="text-2xl font-bold text-white">This episode requires a subscription</h1>
-        <p className="max-w-md text-sm text-zinc-400">
-          Get a monthly subscription to watch all episodes without limits.
-        </p>
-        <button
-          onClick={() => navigate("/subscribe")}
-          className="mt-2 inline-flex items-center gap-2 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white hover:bg-rose-700"
-        >
-          <Crown className="h-4 w-4" /> Get Subscription
-        </button>
-        <Link to={`/series/${id}`} className="text-sm text-zinc-400 underline">Back to series</Link>
-      </div>
+      <LockedEpisodeScreen
+        episode={current}
+        seriesId={id}
+        onUnlock={() => setUnlockedIds((prev) => new Set([...prev, current.id]))}
+      />
     );
   }
 
