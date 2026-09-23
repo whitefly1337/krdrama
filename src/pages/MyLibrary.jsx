@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Bookmark } from "lucide-react";
-import PenguinLoader from "@/components/PenguinLoader";
+import { Bookmark, Loader2 } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
 
 export default function MyLibrary() {
@@ -31,7 +30,9 @@ export default function MyLibrary() {
 
   if (loading) {
     return (
-      <PenguinLoader />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
+      </div>
     );
   }
 
