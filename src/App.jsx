@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 // Add page imports here
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
+import Terms from '@/pages/Terms';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -35,6 +36,7 @@ const AuthenticatedApp = () => {
       {/* Add your page Route elements here */}
       <Route element={<Layout />}>
         <Route path="/privacy-policy" element={<Home />} />
+        <Route path="/terms" element={<Terms />} />
         <Route path="/" element={<Navigate to="/privacy-policy" replace />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
