@@ -118,7 +118,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
           <div className="flex items-center gap-3">
             <img
-              src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/052a5f509_rkdrama.JPG"
+              src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/dc46cd676_ChatGPTImage24202619_07_22.png"
               alt="RKDrama"
               className="h-11 w-11 rounded-full object-cover ring-2 ring-primary/30"
             />
@@ -197,7 +197,7 @@ export default function Home() {
       <footer className="border-t border-border/60">
         <div className="mx-auto max-w-3xl px-5 py-8 text-center">
           <img
-            src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/052a5f509_rkdrama.JPG"
+            src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/dc46cd676_ChatGPTImage24202619_07_22.png"
             alt="RKDrama"
             className="mx-auto h-10 w-10 rounded-full object-cover"
           />
