@@ -1,139 +1,89 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-import { base44 } from '@/api/base44Client';
-import { appParams } from '@/lib/app-params';
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { supabase } from '@/api/supabaseClient';
+import { identifyPurchasesUser } from '@/lib/purchases';
+import { forgetEpisodeStreams } from '@/lib/episodes';
+import { DEMO_MODE } from '@/lib/demo';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
+
+// Every visitor always has a session: guests get an anonymous Supabase user,
+// so wallets, unlocks and bookmarks live on the server for everyone.
+async function ensureSession() {
+  if (DEMO_MODE) return null; // demo catalog needs no backend session
+  const { data } = await supabase.auth.getSession();
+  if (data.session) return data.session;
+  const { data: anon, error } = await supabase.auth.signInAnonymously();
+  if (error) {
+    console.error('Anonymous sign-in failed (enable it in Supabase Auth settings):', error);
+    return null;
+  }
+  return anon.session;
+}
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
-  const [isLoadingPublicSettings, setIsLoadingPublicSettings] = useState(true);
-  const [authError, setAuthError] = useState(null);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [appPublicSettings, setAppPublicSettings] = useState(null); // Contains only { id, public_settings }
 
   useEffect(() => {
-    checkAppState();
+    let active = true;
+    ensureSession().then((s) => {
+      if (!active) return;
+      setSession(s);
+      setIsLoadingAuth(false);
+    });
+
+    const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+      setSession(s);
+      if (event === 'SIGNED_OUT') {
+        forgetEpisodeStreams();
+        // Supabase warns against awaiting auth calls inside this callback.
+        setTimeout(() => ensureSession().then((next) => active && setSession(next)), 0);
+      }
+    });
+
+    return () => {
+      active = false;
+      listener.subscription.unsubscribe();
+    };
   }, []);
 
-  const checkAppState = async () => {
-    try {
-      setIsLoadingPublicSettings(true);
-      setAuthError(null);
-      
-      try {
-        const publicSettings = await base44.app.getPublicSettings();
-        setAppPublicSettings(publicSettings);
-        
-        // If we got the app public settings successfully, check if user is authenticated
-        if (appParams.token) {
-          await checkUserAuth();
-        } else {
-          setIsLoadingAuth(false);
-          setIsAuthenticated(false);
-          setAuthChecked(true);
-        }
-        setIsLoadingPublicSettings(false);
-      } catch (appError) {
-        console.error('App state check failed:', appError);
-        
-        // Handle app-level errors
-        if (appError.status === 403 && appError.data?.extra_data?.reason) {
-          const reason = appError.data.extra_data.reason;
-          if (reason === 'auth_required') {
-            setAuthError({
-              type: 'auth_required',
-              message: 'Authentication required'
-            });
-          } else if (reason === 'user_not_registered') {
-            setAuthError({
-              type: 'user_not_registered',
-              message: 'User not registered for this app'
-            });
-          } else {
-            setAuthError({
-              type: reason,
-              message: appError.message
-            });
-          }
-        } else {
-          setAuthError({
-            type: 'unknown',
-            message: appError.message || 'Failed to load app'
-          });
-        }
-        setIsLoadingPublicSettings(false);
-        setIsLoadingAuth(false);
-      }
-    } catch (error) {
-      console.error('Unexpected error:', error);
-      setAuthError({
-        type: 'unknown',
-        message: error.message || 'An unexpected error occurred'
-      });
-      setIsLoadingPublicSettings(false);
-      setIsLoadingAuth(false);
-    }
-  };
+  const user = session?.user ?? null;
+  const userId = user?.id ?? null;
 
-  const checkUserAuth = async () => {
-    try {
-      // Now check if the user is authenticated
-      setIsLoadingAuth(true);
-      const currentUser = await base44.auth.me();
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      setIsLoadingAuth(false);
-      setAuthChecked(true);
-    } catch (error) {
-      console.error('User auth check failed:', error);
-      setIsLoadingAuth(false);
-      setIsAuthenticated(false);
-      setAuthChecked(true);
-      
-      // If user auth fails, it might be an expired token
-      if (error.status === 401 || error.status === 403) {
-        setAuthError({
-          type: 'auth_required',
-          message: 'Authentication required'
-        });
-      }
+  const refreshProfile = useCallback(async () => {
+    if (!userId) {
+      setProfile(null);
+      return;
     }
-  };
+    const { data } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+    setProfile(data ?? null);
+  }, [userId]);
 
-  const logout = (shouldRedirect = true) => {
-    setUser(null);
-    setIsAuthenticated(false);
-    
-    if (shouldRedirect) {
-      // Use the SDK's logout method which handles token cleanup and redirect
-      base44.auth.logout(window.location.href);
-    } else {
-      // Just remove the token without redirect
-      base44.auth.logout();
-    }
-  };
+  useEffect(() => {
+    refreshProfile();
+    forgetEpisodeStreams();
+    if (userId) identifyPurchasesUser(userId);
+  }, [userId, refreshProfile]);
 
-  const navigateToLogin = () => {
-    // Use the SDK's redirectToLogin method
-    base44.auth.redirectToLogin(window.location.href);
-  };
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      isAuthenticated, 
-      isLoadingAuth,
-      isLoadingPublicSettings,
-      authError,
-      appPublicSettings,
-      authChecked,
-      logout,
-      navigateToLogin,
-      checkUserAuth,
-      checkAppState
-    }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user,
+        profile,
+        // No session at all (e.g. demo mode) is treated as a guest too.
+        isAnonymous: !user || Boolean(user.is_anonymous),
+        isAdmin: profile?.role === 'admin',
+        isLoadingAuth,
+        refreshProfile,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

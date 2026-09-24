@@ -1,61 +1,44 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
+import { DEMO_MODE, demoGetLibrary, demoToggleLibrary } from "@/lib/demo";
 
-const GUEST_BOOKMARKS_KEY = "krdrama_guest_bookmarks";
+// Every visitor has a Supabase session (anonymous for guests), so bookmarks
+// are stored server-side and follow the user when they create an account.
+// RLS scopes all queries to the caller's own rows.
 
-function getGuestBookmarks() {
-  try {
-    return JSON.parse(localStorage.getItem(GUEST_BOOKMARKS_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function setGuestBookmarks(ids) {
-  localStorage.setItem(GUEST_BOOKMARKS_KEY, JSON.stringify(ids));
+async function currentUserId() {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
 }
 
 export async function isBookmarked(seriesId) {
   if (!seriesId) return false;
-  try {
-    const me = await base44.auth.me();
-    const libs = await base44.entities.UserLibrary.filter({ user_id: me.id, series_id: seriesId });
-    return libs.length > 0;
-  } catch {
-    return getGuestBookmarks().includes(seriesId);
-  }
+  if (DEMO_MODE) return demoGetLibrary().includes(seriesId);
+  const { data } = await supabase
+    .from("user_library")
+    .select("series_id")
+    .eq("series_id", seriesId)
+    .maybeSingle();
+  return Boolean(data);
 }
 
 export async function toggleBookmarkUtil(seriesId) {
-  if (!seriesId) return false;
-  try {
-    const me = await base44.auth.me();
-    const libs = await base44.entities.UserLibrary.filter({ user_id: me.id, series_id: seriesId });
-    if (libs.length > 0) {
-      await base44.entities.UserLibrary.deleteMany({ user_id: me.id, series_id: seriesId });
-      return false;
-    }
-    await base44.entities.UserLibrary.create({ user_id: me.id, series_id: seriesId });
-    return true;
-  } catch {
-    const ids = getGuestBookmarks();
-    const idx = ids.indexOf(seriesId);
-    if (idx >= 0) {
-      ids.splice(idx, 1);
-      setGuestBookmarks(ids);
-      return false;
-    }
-    ids.push(seriesId);
-    setGuestBookmarks(ids);
-    return true;
+  if (DEMO_MODE) return seriesId ? demoToggleLibrary(seriesId) : false;
+  const userId = await currentUserId();
+  if (!seriesId || !userId) return false;
+  if (await isBookmarked(seriesId)) {
+    await supabase.from("user_library").delete().eq("series_id", seriesId);
+    return false;
   }
+  await supabase.from("user_library").insert({ user_id: userId, series_id: seriesId });
+  return true;
 }
 
 export async function getBookmarkedSeriesIds() {
-  try {
-    const me = await base44.auth.me();
-    const libs = await base44.entities.UserLibrary.filter({ user_id: me.id });
-    return libs.map((l) => l.series_id);
-  } catch {
-    return getGuestBookmarks();
-  }
+  if (DEMO_MODE) return demoGetLibrary();
+  const { data, error } = await supabase
+    .from("user_library")
+    .select("series_id")
+    .order("created_at", { ascending: false });
+  if (error) return [];
+  return data.map((row) => row.series_id);
 }

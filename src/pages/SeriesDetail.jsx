@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { getSeriesWithEpisodes } from "@/lib/episodes";
 import { Image } from "@/components/ui/image";
 import { Play, Loader2, ArrowLeft, Lock } from "lucide-react";
 
@@ -13,10 +13,8 @@ export default function SeriesDetail() {
   useEffect(() => {
     (async () => {
       try {
-        const s = await base44.entities.Series.get(id);
+        const { series: s, episodes: eps } = await getSeriesWithEpisodes(id);
         setSeries(s);
-        const eps = await base44.entities.Episode.filter({ series_id: id });
-        eps.sort((a, b) => a.episode_number - b.episode_number);
         setEpisodes(eps);
       } catch (e) {
         console.error(e);
@@ -53,7 +51,7 @@ export default function SeriesDetail() {
           fittingType="fill"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/50 to-transparent" />
-        <div className="absolute left-4 top-4">
+        <div className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)]">
           <Link to="/" className="flex items-center gap-1 rounded-lg bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur">
             <ArrowLeft className="h-4 w-4" /> Back
           </Link>

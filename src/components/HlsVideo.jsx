@@ -13,13 +13,14 @@ const HlsVideo = forwardRef(function HlsVideo({ src, ...props }, ref) {
     // Pause and clear before loading new source to prevent audio bleed
     video.pause();
     let hls;
-    if (src.endsWith(".m3u8") && Hls.isSupported()) {
+    // Signed URLs carry a query string, so look at the path only.
+    const isHls = new URL(src, window.location.href).pathname.endsWith(".m3u8");
+    if (isHls && Hls.isSupported() && !video.canPlayType("application/vnd.apple.mpegurl")) {
       hls = new Hls({ enableWorker: true });
       hls.loadSource(src);
       hls.attachMedia(video);
-    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      video.src = src;
     } else {
+      // Safari/iOS play HLS natively; everything else is mp4/webm.
       video.src = src;
     }
     return () => {

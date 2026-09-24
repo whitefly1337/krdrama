@@ -1,26 +1,48 @@
 import { useRef, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Lock } from "lucide-react";
 import HlsVideo from "@/components/HlsVideo";
+import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
+import { useEpisodeStream } from "@/hooks/use-episode-stream";
 
-export default function HorizontalPlayer({ episodes, startIndex = 0 }) {
+export default function HorizontalPlayer({ episodes, startIndex = 0, seriesId, isLocked, onUnlocked }) {
   const [index, setIndex] = useState(startIndex);
   const videoRef = useRef(null);
   const episode = episodes[index];
+  const stream = useEpisodeStream(episode, episode ? isLocked(episode) : false);
 
   if (!episode) return null;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
+    <div className="mx-auto max-w-5xl px-4 pb-6 pt-[calc(env(safe-area-inset-top)+1.5rem)]">
       <div className="overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
-        <HlsVideo
-          ref={videoRef}
-          key={episode.id}
-          src={episode.video_url}
-          className="aspect-video w-full bg-black"
-          controls
-          autoPlay
-          playsInline
-        />
+        {stream.status === "locked" ? (
+          <LockedEpisodeScreen
+            episode={episode}
+            seriesId={seriesId}
+            onUnlock={() => onUnlocked(episode.id)}
+          />
+        ) : stream.status === "ready" ? (
+          <HlsVideo
+            ref={videoRef}
+            key={episode.id}
+            src={stream.url}
+            className="aspect-video w-full bg-black"
+            controls
+            autoPlay
+            playsInline
+            onEnded={() => index < episodes.length - 1 && setIndex(index + 1)}
+          />
+        ) : (
+          <div className="flex aspect-video w-full items-center justify-center px-6 text-center">
+            {stream.status === "loading" ? (
+              <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+            ) : (
+              <p className="text-sm text-zinc-300">
+                {stream.error === "no_video" ? "This episode has no video yet." : "Couldn't load the video. Check your connection."}
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 flex items-center justify-between">
@@ -53,12 +75,13 @@ export default function HorizontalPlayer({ episodes, startIndex = 0 }) {
             <button
               key={ep.id}
               onClick={() => setIndex(i)}
-              className={`rounded-lg border p-3 text-left text-sm transition ${
+              className={`relative rounded-lg border p-3 text-left text-sm transition ${
                 i === index
                   ? "border-rose-500 bg-rose-500/10 text-white"
                   : "border-white/5 bg-white/5 text-zinc-300 hover:border-white/20"
               }`}
             >
+              {isLocked(ep) && <Lock className="absolute right-2 top-2 h-3 w-3 text-amber-400" />}
               <span className="text-xs text-zinc-500">Episode {ep.episode_number}</span>
               <p className="line-clamp-1 font-medium">{ep.title}</p>
             </button>

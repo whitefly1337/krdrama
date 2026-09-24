@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge } from "lucide-react";
+import { ChevronUp, Heart, Bookmark, MoreHorizontal, ChevronLeft, Layers, Play, Pause, Gauge, Loader2 } from "lucide-react";
 import { isBookmarked, toggleBookmarkUtil } from "@/lib/bookmarks";
 import HlsVideo from "@/components/HlsVideo";
 import EpisodeGrid from "@/components/EpisodeGrid";
+import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
+import { useEpisodeStream } from "@/hooks/use-episode-stream";
 
 const SPEEDS = [0.5, 1, 1.25, 1.5, 2];
 
-export default function VerticalPlayer({ episodes, startIndex = 0, series, onBack, hasSub }) {
+export default function VerticalPlayer({ episodes, startIndex = 0, series, onBack, isLocked, onUnlocked }) {
   const [index, setIndex] = useState(startIndex);
   const [playing, setPlaying] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -22,6 +24,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   const videoRef = useRef(null);
   const containerRef = useRef(null);
   const episode = episodes[index];
+  const stream = useEpisodeStream(episode, episode ? isLocked(episode) : false);
 
   useEffect(() => {
     if (!series?.id) return;
@@ -44,11 +47,16 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
     const onDur = () => setDuration(video.duration || 0);
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
+    // Autoplay the next episode; a locked one shows the unlock screen.
+    const onEnded = () => {
+      if (index < episodes.length - 1) setIndex(index + 1);
+    };
     video.addEventListener("timeupdate", onTime);
     video.addEventListener("durationchange", onDur);
     video.addEventListener("loadedmetadata", onDur);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
+    video.addEventListener("ended", onEnded);
     video.playbackRate = speed;
     setPlaying(false);
     video.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
@@ -58,8 +66,9 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
       video.removeEventListener("loadedmetadata", onDur);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
+      video.removeEventListener("ended", onEnded);
     };
-  }, [index, episode]);
+  }, [index, episode, episodes.length, stream.url]);
 
   useEffect(() => {
     if (videoRef.current) videoRef.current.playbackRate = speed;
@@ -113,15 +122,27 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
   };
 
   return (
-    <div ref={containerRef} className="relative h-screen w-full overflow-hidden bg-black">
+    <div ref={containerRef} className="relative h-[100dvh] w-full overflow-hidden bg-black">
       <HlsVideo
         ref={videoRef}
-        src={episode.video_url}
+        src={stream.url}
         className="h-full w-full object-cover"
-        loop
         playsInline
         controls={false}
       />
+
+      {stream.status === "loading" && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-white/70" />
+        </div>
+      )}
+      {stream.status === "error" && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-8 text-center">
+          <p className="text-sm text-zinc-300">
+            {stream.error === "no_video" ? "This episode has no video yet." : "Couldn't load the video. Check your connection."}
+          </p>
+        </div>
+      )}
 
       {/* Tap layer to toggle UI */}
       <div className="absolute inset-0" onClick={() => setUiVisible((v) => !v)} />
@@ -137,7 +158,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
           {/* Back */}
           <button
             onClick={(e) => { e.stopPropagation(); onBack?.(); }}
-            className="absolute left-4 top-4 text-white drop-shadow-lg"
+            className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] text-white drop-shadow-lg"
           >
             <ChevronLeft className="h-7 w-7" />
           </button>
@@ -186,7 +207,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
           </div>
 
           {/* Bottom content */}
-          <div className="absolute bottom-0 left-0 right-0 px-4 pb-3">
+          <div className="absolute bottom-0 left-0 right-0 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)]">
             <div className="mb-3 max-w-[78%]">
               <h2 className="text-base font-bold drop-shadow-lg text-white">{series?.title || episode.series_title}</h2>
               {tags.length > 0 && (
@@ -245,12 +266,38 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
       {!uiVisible && (
         <button
           onClick={(e) => { e.stopPropagation(); setShowEpisodes(true); }}
-          className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-md"
+          className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-white backdrop-blur-md"
         >
           <Layers className="h-4 w-4" />
           <span className="text-sm font-medium">EP.{episode.episode_number}/{total}</span>
           <ChevronUp className="h-4 w-4" />
         </button>
+      )}
+
+      {/* Locked episode: swipe still moves between episodes underneath */}
+      {stream.status === "locked" && (
+        <div className="absolute inset-0 z-40 overflow-y-auto bg-black">
+          <button
+            onClick={() => onBack?.()}
+            aria-label="Back"
+            className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] z-10 text-white"
+          >
+            <ChevronLeft className="h-7 w-7" />
+          </button>
+          <LockedEpisodeScreen
+            episode={episode}
+            seriesId={series?.id}
+            onUnlock={() => onUnlocked(episode.id)}
+          />
+          <button
+            onClick={() => setShowEpisodes(true)}
+            className="absolute bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white"
+          >
+            <Layers className="h-4 w-4" />
+            <span className="text-sm font-medium">EP.{episode.episode_number}/{total}</span>
+            <ChevronUp className="h-4 w-4" />
+          </button>
+        </div>
       )}
 
       {/* Episode popup */}
@@ -259,7 +306,7 @@ export default function VerticalPlayer({ episodes, startIndex = 0, series, onBac
           episodes={episodes}
           currentIndex={index}
           series={series}
-          hasSub={hasSub}
+          isLocked={isLocked}
           onSelect={(i) => { setIndex(i); setShowEpisodes(false); }}
           onClose={() => setShowEpisodes(false)}
         />

@@ -1,24 +1,37 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import AuthLayout from "@/components/AuthLayout";
-import GoogleIcon from "@/components/GoogleIcon";
+import SocialSignIn from "@/components/SocialSignIn";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { useAuth } from "@/lib/AuthContext";
 
+// Guests (anonymous users) are *converted* rather than replaced, so their
+// coins, unlocks, bookmarks and purchases stay with the new account:
+//   1. updateUser({ email }) sends a code        (type "email_change")
+//   2. verifyOtp confirms the email
+//   3. updateUser({ password }) sets the password
+// Without a guest session it's a regular signUp + "signup" code.
 export default function Register() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  // Only a real anonymous session can be converted; with no session, sign up.
+  const isAnonymous = Boolean(user?.is_anonymous);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
+  const [otpType, setOtpType] = useState("signup");
   const [otpCode, setOtpCode] = useState("");
+  const returnTo = safeReturnTo();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,12 +40,28 @@ export default function Register() {
       setError("Passwords do not match");
       return;
     }
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      if (isAnonymous) {
+        const { error: updateError } = await supabase.auth.updateUser({ email });
+        if (updateError) throw updateError;
+        setOtpType("email_change");
+      } else {
+        const { error: signUpError } = await supabase.auth.signUp({ email, password });
+        if (signUpError) throw signUpError;
+        setOtpType("signup");
+      }
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(
+        err.code === "email_exists"
+          ? "An account with this email already exists. Log in instead."
+          : err.message || "Registration failed"
+      );
     } finally {
       setLoading(false);
     }
@@ -42,11 +71,13 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otpCode, type: otpType });
+      if (verifyError) throw verifyError;
+      if (otpType === "email_change") {
+        const { error: passwordError } = await supabase.auth.updateUser({ password });
+        if (passwordError) throw passwordError;
       }
-      window.location.href = safeReturnTo();
+      navigate(returnTo, { replace: true });
     } catch (err) {
       setError(err.message || "Invalid verification code");
     } finally {
@@ -57,7 +88,8 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      await base44.auth.resendOtp(email);
+      const { error: resendError } = await supabase.auth.resend({ type: otpType, email });
+      if (resendError) throw resendError;
       toast({
         title: "Code sent",
         description: "Check your email for the new code.",
@@ -67,16 +99,13 @@ export default function Register() {
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", safeReturnTo());
-  };
-
   if (showOtp) {
     return (
       <AuthLayout
         icon={Mail}
         title="Verify your email"
         subtitle={`We sent a code to ${email}`}
+        onBack={() => setShowOtp(false)}
       >
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -129,12 +158,13 @@ export default function Register() {
     <AuthLayout
       icon={UserPlus}
       title="Create your account"
-      subtitle="Sign up to get started"
+      subtitle="Keep your coins and purchases on every device"
+      onBack={() => navigate(-1)}
       footer={
         <>
           Already have an account?{" "}
           <Link
-            to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
+            to={"/login" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
             className="text-primary font-medium hover:underline"
           >
             Log in
@@ -142,14 +172,11 @@ export default function Register() {
         </>
       }
     >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
-        Continue with Google
-      </Button>
+      <SocialSignIn
+        returnTo={returnTo}
+        onSuccess={() => navigate(returnTo, { replace: true })}
+        onError={setError}
+      />
 
       <div className="relative mb-6">
         <div className="absolute inset-0 flex items-center">
@@ -175,7 +202,6 @@ export default function Register() {
               id="email"
               type="email"
               autoComplete="email"
-              autoFocus
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -192,7 +218,7 @@ export default function Register() {
               id="password"
               type="password"
               autoComplete="new-password"
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 h-12"

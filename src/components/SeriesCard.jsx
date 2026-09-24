@@ -4,8 +4,8 @@ import { Play, Flame } from "lucide-react";
 
 export default function SeriesCard({ series }) {
   const isNew = (() => {
-    if (!series.created_date) return false;
-    return Date.now() - new Date(series.created_date).getTime() < 7 * 86400000;
+    if (!series.created_at) return false;
+    return Date.now() - new Date(series.created_at).getTime() < 7 * 86400000;
   })();
 
   return (

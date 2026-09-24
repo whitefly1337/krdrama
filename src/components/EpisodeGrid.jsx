@@ -3,7 +3,7 @@ import { Lock } from "lucide-react";
 
 const TAB_SIZE = 30;
 
-export default function EpisodeGrid({ episodes, currentIndex, series, hasSub, onSelect, onClose }) {
+export default function EpisodeGrid({ episodes, currentIndex, series, isLocked, onSelect, onClose }) {
   const [tab, setTab] = useState(() => {
     // Open the tab that contains the current episode
     return Math.floor(currentIndex / TAB_SIZE);
@@ -26,7 +26,7 @@ export default function EpisodeGrid({ episodes, currentIndex, series, hasSub, on
       <div className="absolute inset-0 bg-black/70" />
       <div
         onClick={(e) => e.stopPropagation()}
-        className="relative mt-auto max-h-[72%] w-full overflow-y-auto rounded-t-2xl bg-[#121212] px-4 pb-6 pt-3"
+        className="relative mt-auto max-h-[72%] w-full overflow-y-auto rounded-t-2xl bg-[#121212] px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-3"
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
 
@@ -55,7 +55,7 @@ export default function EpisodeGrid({ episodes, currentIndex, series, hasSub, on
           {visible.map((ep, visIdx) => {
             const realIndex = currentTab.start + visIdx;
             const isCurrent = realIndex === currentIndex;
-            const isLocked = !ep.is_free && !hasSub;
+            const locked = isLocked(ep);
             return (
               <button
                 key={ep.id}
@@ -64,7 +64,7 @@ export default function EpisodeGrid({ episodes, currentIndex, series, hasSub, on
                   isCurrent ? "bg-white/20 text-white" : "bg-[#252525] text-white hover:bg-white/10"
                 }`}
               >
-                {isLocked && (
+                {locked && (
                   <Lock className="absolute right-1 top-1 h-3 w-3 text-amber-400" />
                 )}
                 <span>{ep.episode_number}</span>

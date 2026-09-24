@@ -14,8 +14,9 @@ export default function Layout() {
       <main>
         <Outlet />
       </main>
-      {!location.pathname.startsWith("/watch/") && (
-      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-white/5 bg-zinc-950/90 backdrop-blur-xl sm:hidden">
+      {/* Player and the VIP paywall are full-screen */}
+      {!location.pathname.startsWith("/watch/") && location.pathname !== "/subscribe" && (
+      <nav className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-white/5 bg-zinc-950/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl sm:hidden">
         {footerNav.map((item) => {
           const active = location.pathname === item.to;
           return (

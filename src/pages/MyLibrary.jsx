@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBookmarkedSeriesIds } from "@/lib/bookmarks";
-import { base44 } from "@/api/base44Client";
+import { getSeriesByIds } from "@/lib/episodes";
 import { Bookmark, Loader2 } from "lucide-react";
 import SeriesCard from "@/components/SeriesCard";
 
@@ -17,8 +17,7 @@ export default function MyLibrary() {
           setSeries([]);
           return;
         }
-        const all = await base44.entities.Series.list();
-        setSeries(all.filter((s) => ids.includes(s.id)));
+        setSeries(await getSeriesByIds(ids));
       } catch (e) {
         console.error(e);
       } finally {
@@ -36,7 +35,7 @@ export default function MyLibrary() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
+    <div className="mx-auto max-w-7xl px-4 pb-24 pt-[calc(env(safe-area-inset-top)+1.5rem)] sm:px-6">
       <h1 className="mb-5 text-2xl font-bold text-white">My Library</h1>
       {series.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">

@@ -1,14 +1,28 @@
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
+import { DEMO_MODE, demoGetSubscription } from "@/lib/demo";
 
-// Check if the current user has an active subscription.
-// Returns the Subscription record if active, or null.
-export async function checkActiveSubscription() {
-  try {
-    const me = await base44.auth.me();
-    const subs = await base44.entities.Subscription.filter({ user_id: me.id, status: "active" });
-    const active = subs.find((s) => !s.end_date || new Date(s.end_date) >= new Date());
-    return active || null;
-  } catch {
+// "krd.vip.yearly" → "Yearly" etc., for display.
+export function planLabel(productId) {
+  if (!productId) return "VIP";
+  if (/year|annual/i.test(productId)) return "Yearly";
+  if (/month/i.test(productId)) return "Monthly";
+  if (/week/i.test(productId)) return "Weekly";
+  return "VIP";
+}
+
+export function isSubscriptionActive(sub) {
+  if (!sub?.entitlement_active) return false;
+  return !sub.expires_at || new Date(sub.expires_at) > new Date();
+}
+
+// The current user's VIP subscription if active, else null. RLS limits the
+// query to the caller's own row.
+export async function getActiveSubscription() {
+  if (DEMO_MODE) return demoGetSubscription();
+  const { data, error } = await supabase.from("subscriptions").select("*").maybeSingle();
+  if (error) {
+    console.error(error);
     return null;
   }
+  return isSubscriptionActive(data) ? data : null;
 }

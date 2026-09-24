@@ -121,6 +121,48 @@
   box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.15);
 }
 
+/* VIP gold */
+.text-gold {
+  background: linear-gradient(135deg, #fce7b2 0%, #e5a45f 45%, #a4793c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.bg-gold {
+  background: linear-gradient(135deg, #f6d38b 0%, #e5a45f 45%, #a4793c 100%);
+}
+
+/* Light sweep across CTAs and membership cards */
+@keyframes shimmer {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(120%); }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.45) 50%, transparent 75%);
+  transform: translateX(-120%);
+  animation: shimmer 3.2s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.animate-float { animation: float 4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after, .animate-float { animation: none; }
+}
+
 /* Equalizer bars for currently-playing episode */
 @keyframes eqbar {
   0%, 100% { transform: scaleY(0.3); }

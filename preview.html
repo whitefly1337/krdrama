@@ -1,0 +1,179 @@
+<!doctype html>
+<!--
+  Dev-only iPhone mockup around the running app: http://localhost:5173/preview.html
+  Not part of the production build (Vite only bundles index.html).
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRDrama — iPhone preview</title>
+    <style>
+      :root { color-scheme: dark; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; }
+      body {
+        background: radial-gradient(circle at 50% 30%, #26262b, #0b0b0d 70%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #ddd;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow: hidden;
+      }
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px 12px;
+      }
+      .toolbar button, .toolbar select {
+        background: #1f1f24;
+        color: #eee;
+        border: 1px solid #333;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .toolbar button:hover { background: #2a2a31; }
+      .stage { flex: 1; width: 100%; display: flex; align-items: flex-start; justify-content: center; }
+      .phone {
+        transform-origin: top center;
+        position: relative;
+        border-radius: 62px;
+        padding: 14px;
+        background: linear-gradient(145deg, #3a3a40, #151518);
+        box-shadow: 0 0 0 2px #55555c, 0 30px 80px rgba(0, 0, 0, 0.7);
+      }
+      .screen {
+        position: relative;
+        border-radius: 48px;
+        overflow: hidden;
+        background: #09090b;
+        display: flex;
+        flex-direction: column;
+      }
+      .statusbar {
+        flex: none;
+        height: var(--top);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 6px 32px 0 40px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+        background: #09090b;
+      }
+      .island {
+        position: absolute;
+        top: 11px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 124px;
+        height: 36px;
+        border-radius: 20px;
+        background: #000;
+        z-index: 2;
+      }
+      .icons { display: flex; gap: 6px; align-items: center; }
+      iframe { flex: 1; width: 100%; border: 0; display: block; background: #09090b; }
+      .home-area {
+        flex: none;
+        height: var(--bottom);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #09090b;
+      }
+      .home-indicator { width: 134px; height: 5px; border-radius: 3px; background: #fff; opacity: 0.85; }
+      .se .island { display: none; }
+      .se.phone { border-radius: 40px; padding: 60px 14px; }
+      .se .screen { border-radius: 4px; }
+      .se .home-indicator { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <select id="device" title="Device">
+        <option value="16">iPhone 16 / 15 Pro (393×852)</option>
+        <option value="16max">iPhone 16 Pro Max (440×956)</option>
+        <option value="se">iPhone SE (375×667)</option>
+      </select>
+      <button id="home">⌂ Home</button>
+      <button id="back">← Back</button>
+      <button id="reload">⟳ Reload</button>
+      <button id="open">Open full page ↗</button>
+    </div>
+    <div class="stage">
+      <div class="phone" id="phone">
+        <div class="screen" id="screen">
+          <div class="island"></div>
+          <div class="statusbar">
+            <span id="clock">9:41</span>
+            <span class="icons">
+              <svg width="18" height="12" viewBox="0 0 18 12" fill="#fff"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+              <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.2-1.3A10.4 10.4 0 0 0 8 .4 10.4 10.4 0 0 0 .8 3.3L2 4.6a8.6 8.6 0 0 1 6-2.4Zm0 3.6c1.3 0 2.5.5 3.4 1.3l1.2-1.3A6.6 6.6 0 0 0 8 4a6.6 6.6 0 0 0-4.6 1.8l1.2 1.3A4.8 4.8 0 0 1 8 5.8Zm0 3.6c-.5 0-1 .2-1.3.5L8 11.4l1.3-1.5A1.8 1.8 0 0 0 8 9.4Z"/></svg>
+              <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="2" y="2" width="18" height="9" rx="2" fill="#fff"/><rect x="25" y="4.5" width="1.5" height="4" rx=".75" fill="#fff" fill-opacity=".5"/></svg>
+            </span>
+          </div>
+          <iframe id="app" src="/" title="KRDrama"></iframe>
+          <div class="home-area"><div class="home-indicator"></div></div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // The status bar and home indicator are drawn by the frame, so the app
+      // inside the iframe (where safe-area insets are 0) isn't covered by them.
+      const DEVICES = {
+        "16": { w: 393, h: 852, top: 54, bottom: 34, se: false },
+        "16max": { w: 440, h: 956, top: 62, bottom: 34, se: false },
+        se: { w: 375, h: 667, top: 20, bottom: 0, se: true },
+      };
+      const phone = document.getElementById("phone");
+      const screen = document.getElementById("screen");
+      const frame = document.getElementById("app");
+      const select = document.getElementById("device");
+
+      function apply() {
+        const d = DEVICES[select.value];
+        screen.style.width = d.w + "px";
+        screen.style.height = d.h + "px";
+        screen.style.setProperty("--top", d.top + "px");
+        screen.style.setProperty("--bottom", d.bottom + "px");
+        phone.classList.toggle("se", d.se);
+        fit();
+        try { localStorage.setItem("krd-preview-device", select.value); } catch {}
+      }
+
+      // Scale the phone down to fit short windows (e.g. a VS Code side panel).
+      function fit() {
+        phone.style.transform = "none";
+        const available = window.innerHeight - document.querySelector(".toolbar").offsetHeight - 20;
+        const availableW = window.innerWidth - 20;
+        const scale = Math.min(1, available / phone.offsetHeight, availableW / phone.offsetWidth);
+        phone.style.transform = `scale(${scale})`;
+      }
+
+      function tick() {
+        const now = new Date();
+        document.getElementById("clock").textContent =
+          now.getHours() + ":" + String(now.getMinutes()).padStart(2, "0");
+      }
+
+      try { select.value = localStorage.getItem("krd-preview-device") || "16"; } catch {}
+      select.addEventListener("change", apply);
+      window.addEventListener("resize", fit);
+      document.getElementById("home").onclick = () => (frame.src = "/");
+      document.getElementById("back").onclick = () => frame.contentWindow.history.back();
+      document.getElementById("reload").onclick = () => frame.contentWindow.location.reload();
+      document.getElementById("open").onclick = () => window.open(frame.contentWindow.location.href, "_blank");
+      tick();
+      setInterval(tick, 30000);
+      apply();
+    </script>
+  </body>
+</html>

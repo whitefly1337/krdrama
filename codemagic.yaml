@@ -1,0 +1,62 @@
+# Cloud iOS build (no Mac needed): web build → Capacitor sync → signed .ipa → TestFlight.
+# One-time setup is described in README.md ("Сборка iOS в Codemagic").
+workflows:
+  ios-release:
+    name: iOS release → TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      # Name of the App Store Connect API key added in Codemagic → Team → Integrations.
+      app_store_connect: KRDrama ASC key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.krdrama.app
+      groups:
+        # VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_REVENUECAT_IOS_KEY,
+        # VITE_ADMOB_REWARDED_IOS, VITE_ADMOB_TESTING=false, VITE_PRIVACY_URL,
+        # VITE_TERMS_URL, VITE_SUPPORT_EMAIL, ADMOB_APP_ID_IOS
+        - krdrama_production
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+        # App Store Connect → App Information → Apple ID (numeric)
+        APP_STORE_APPLE_ID: "0000000000"
+      node: 22
+      xcode: latest
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "v*"
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web app
+        # Vite reads the VITE_* variables from the environment group.
+        script: npm run build
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Set AdMob app id
+        script: |
+          if [ -z "$ADMOB_APP_ID_IOS" ]; then
+            echo "ADMOB_APP_ID_IOS is not set"; exit 1
+          fi
+          /usr/libexec/PlistBuddy -c "Set :GADApplicationIdentifier $ADMOB_APP_ID_IOS" ios/App/App/Info.plist
+      - name: Set build number
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          BUILD=$((LATEST + 1))
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = $BUILD;/g" "$XCODE_PROJECT/project.pbxproj"
+          echo "Build number: $BUILD"
+      - name: Set up code signing
+        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Build ipa
+        script: xcode-project build-ipa --project "$XCODE_PROJECT" --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true

@@ -1,11 +1,13 @@
 import { useEffect, useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { listSeries } from "@/lib/episodes";
+import { useAuth } from "@/lib/AuthContext";
 import SeriesCard from "@/components/SeriesCard";
 import { Image } from "@/components/ui/image";
 import { Link } from "react-router-dom";
 import { Search, Play, Loader2, SlidersHorizontal } from "lucide-react";
 
 export default function Home() {
+  const { isAdmin } = useAuth();
   const [series, setSeries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -15,8 +17,7 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
-        const data = await base44.entities.Series.list();
-        setSeries(data);
+        setSeries(await listSeries());
       } catch (e) {
         console.error(e);
       } finally {
@@ -65,29 +66,33 @@ export default function Home() {
     );
   }
 
-  if (series.length === 0) {
-    return (
-      <div className="flex h-[60vh] flex-col items-center justify-center gap-3 px-6 text-center">
-        <p className="text-lg font-semibold text-white">Catalog is empty</p>
-        <p className="text-sm text-zinc-400">Add series in admin to see them here.</p>
-        <Link to="/admin" className="mt-2 rounded-lg bg-[#bf95f9] px-4 py-2 text-sm font-medium text-white">
-          Open Admin
-        </Link>
-      </div>
-    );
-  }
+  const emptyCatalog = (
+    <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+      <p className="text-lg font-semibold text-white">Catalog is empty</p>
+      {isAdmin ? (
+        <>
+          <p className="text-sm text-zinc-400">Add series in admin to see them here.</p>
+          <Link to="/admin" className="mt-2 rounded-lg bg-[#bf95f9] px-4 py-2 text-sm font-medium text-white">
+            Open Admin
+          </Link>
+        </>
+      ) : (
+        <p className="text-sm text-zinc-400">New dramas are coming soon.</p>
+      )}
+    </div>
+  );
 
   const showHero = !search && activeGenre === "Popular";
 
   return (
     <div className="pb-24 sm:pb-10">
       {/* Top bar: logo + search */}
-      <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-30 bg-black/80 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto max-w-7xl px-4 pt-4 sm:px-6">
           <div className="flex items-center gap-3">
             <button onClick={() => window.location.reload()} className="shrink-0">
               <img
-                src="https://media.base44.com/images/public/6ab13de4fcc06756b5a8ee60/bf221255d_ChatGPTImage23202617_21_02.png"
+                src="/logo.png"
                 alt="KRDrama"
                 className="h-10 w-10 rounded-lg object-cover"
               />
@@ -174,7 +179,9 @@ export default function Home() {
         <h2 className="mb-4 text-lg font-bold text-white">
           {search ? `Results (${filtered.length})` : "Trending Now"}
         </h2>
-        {filtered.length === 0 ? (
+        {series.length === 0 ? (
+          emptyCatalog
+        ) : filtered.length === 0 ? (
           <p className="py-8 text-center text-sm text-zinc-500">Nothing found</p>
         ) : (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

@@ -1,43 +1,31 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
 import VerticalPlayer from "@/components/VerticalPlayer";
 import HorizontalPlayer from "@/components/HorizontalPlayer";
 import { Loader2 } from "lucide-react";
-import LockedEpisodeScreen from "@/components/LockedEpisodeScreen";
-import { getUnlockedEpisodes } from "@/lib/coins";
-import { checkActiveSubscription } from "@/lib/subscription";
+import { getSeriesWithEpisodes } from "@/lib/episodes";
+import { getUnlockedEpisodeIds } from "@/lib/coins";
+import { getActiveSubscription } from "@/lib/subscription";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Watch() {
   const { id } = useParams();
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [series, setSeries] = useState(null);
   const [episodes, setEpisodes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [hasSub, setHasSub] = useState(null);
+  const [hasSub, setHasSub] = useState(false);
   const [unlockedIds, setUnlockedIds] = useState(new Set());
+  const [accessLoaded, setAccessLoaded] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const s = await base44.entities.Series.get(id);
+        const { series: s, episodes: eps } = await getSeriesWithEpisodes(id);
         setSeries(s);
-        const eps = await base44.entities.Episode.filter({ series_id: id });
-        eps.sort((a, b) => a.episode_number - b.episode_number);
-        eps.forEach((e) => (e.series_title = s.title));
-        setEpisodes(eps);
-
-        try {
-          const me = await base44.auth.me();
-          const active = await checkActiveSubscription();
-          setHasSub(!!active);
-          const unlocks = await base44.entities.EpisodeUnlock.filter({ user_id: me.id });
-          setUnlockedIds(new Set(unlocks.map((u) => u.episode_id)));
-        } catch {
-          setHasSub(false);
-          setUnlockedIds(getUnlockedEpisodes());
-        }
+        setEpisodes(eps.map((e) => ({ ...e, series_title: s?.title })));
       } catch (e) {
         console.error(e);
       } finally {
@@ -46,7 +34,30 @@ export default function Watch() {
     })();
   }, [id]);
 
-  if (loading) {
+  // Entitlements for the current (possibly anonymous) user. Only decides what
+  // the UI shows; episode-stream enforces access on the server.
+  useEffect(() => {
+    (async () => {
+      const [sub, unlocks] = await Promise.all([
+        getActiveSubscription(),
+        getUnlockedEpisodeIds().catch(() => new Set()),
+      ]);
+      setHasSub(Boolean(sub));
+      setUnlockedIds(unlocks);
+      setAccessLoaded(true);
+    })();
+  }, [user?.id]);
+
+  const isLocked = useCallback(
+    (ep) => !ep.is_free && !hasSub && !unlockedIds.has(ep.id),
+    [hasSub, unlockedIds]
+  );
+  const onUnlocked = useCallback(
+    (episodeId) => setUnlockedIds((prev) => new Set([...prev, episodeId])),
+    []
+  );
+
+  if (loading || !accessLoaded) {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-rose-500" />
@@ -63,20 +74,6 @@ export default function Watch() {
     );
   }
 
-  const epNum = parseInt(params.get("ep") || "1", 10);
-  const startIndex = Math.max(0, episodes.findIndex((e) => e.episode_number === epNum));
-  const current = episodes[startIndex];
-
-  if (!hasSub && current && !current.is_free && !unlockedIds.has(current.id)) {
-    return (
-      <LockedEpisodeScreen
-        episode={current}
-        seriesId={id}
-        onUnlock={() => setUnlockedIds((prev) => new Set([...prev, current.id]))}
-      />
-    );
-  }
-
   if (episodes.length === 0) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center gap-3 text-center">
@@ -86,6 +83,9 @@ export default function Watch() {
     );
   }
 
+  const epNum = parseInt(params.get("ep") || "1", 10);
+  const startIndex = Math.max(0, episodes.findIndex((e) => e.episode_number === epNum));
+
   return (
     <div className={series.format === "vertical" ? "" : "pb-20 sm:pb-10"}>
       {series.format === "vertical" ? (
@@ -93,11 +93,18 @@ export default function Watch() {
           episodes={episodes}
           startIndex={startIndex}
           series={series}
-          hasSub={hasSub}
+          isLocked={isLocked}
+          onUnlocked={onUnlocked}
           onBack={() => navigate(`/series/${id}`)}
         />
       ) : (
-        <HorizontalPlayer episodes={episodes} startIndex={startIndex} />
+        <HorizontalPlayer
+          episodes={episodes}
+          startIndex={startIndex}
+          seriesId={id}
+          isLocked={isLocked}
+          onUnlocked={onUnlocked}
+        />
       )}
     </div>
   );

@@ -1,44 +1,42 @@
-import { getGuestUid } from "./guest";
+import { supabase } from "@/api/supabaseClient";
+import { DEMO_MODE, demoGetBalance, demoGetUnlocks, demoUnlockEpisode } from "@/lib/demo";
 
+// Display only. The authoritative values live in the SQL functions in
+// supabase/migrations (handle_new_user, award_ad_coins, unlock_episode).
 export const COINS_PER_AD = 10;
 export const COINS_PER_EPISODE = 50;
 export const COINS_FIRST_ENTRY = 35;
 
-const BALANCE_KEY = "krdrama_coin_balance";
-const UNLOCKS_KEY = "krdrama_episode_unlocks";
-
-function balKey() {
-  return `${BALANCE_KEY}_${getGuestUid()}`;
+export async function getBalance() {
+  if (DEMO_MODE) return demoGetBalance();
+  const { data, error } = await supabase.from("wallets").select("balance").maybeSingle();
+  if (error) throw error;
+  return data?.balance ?? 0;
 }
 
-function unlKey() {
-  return `${UNLOCKS_KEY}_${getGuestUid()}`;
+export async function getUnlockedEpisodeIds() {
+  if (DEMO_MODE) return demoGetUnlocks();
+  const { data, error } = await supabase.from("episode_unlocks").select("episode_id");
+  if (error) throw error;
+  return new Set(data.map((u) => u.episode_id));
 }
 
-export function getBalance() {
-  return parseInt(localStorage.getItem(balKey()) || "0", 10);
+// Server-side, atomic. Returns { success, balance, already_unlocked?, error? }.
+export async function unlockEpisode(episodeId) {
+  if (DEMO_MODE) return demoUnlockEpisode(episodeId, COINS_PER_EPISODE);
+  const { data, error } = await supabase.rpc("unlock_episode", { p_episode_id: episodeId });
+  if (error) throw error;
+  return data;
 }
 
-export function addCoins(amount) {
-  const newBalance = getBalance() + amount;
-  localStorage.setItem(balKey(), String(newBalance));
-  return newBalance;
-}
-
-export function spendCoins(amount, episodeId) {
-  if (getBalance() < amount) return { success: false, error: "Not enough coins" };
-  const newBalance = addCoins(-amount);
-  const unlocks = getUnlockedEpisodes();
-  unlocks.add(episodeId);
-  localStorage.setItem(unlKey(), JSON.stringify([...unlocks]));
-  return { success: true, balance: newBalance };
-}
-
-export function getUnlockedEpisodes() {
-  const raw = localStorage.getItem(unlKey());
-  return new Set(raw ? JSON.parse(raw) : []);
-}
-
-export function isEpisodeUnlocked(episodeId) {
-  return getUnlockedEpisodes().has(episodeId);
+// AdMob credits coins through a server-to-server callback a few seconds after
+// the ad, so poll until the balance moves.
+export async function waitForBalanceAbove(previous, { timeoutMs = 20000, intervalMs = 1500 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, intervalMs));
+    const balance = await getBalance();
+    if (balance > previous) return balance;
+  }
+  return null;
 }

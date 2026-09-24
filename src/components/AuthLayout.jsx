@@ -1,8 +1,18 @@
 import React from "react";
+import { ChevronLeft } from "lucide-react";
 
-export default function AuthLayout({ icon: Icon, title, subtitle, footer, children }) {
+export default function AuthLayout({ icon: Icon, title, subtitle, footer, onBack, children }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-background px-4 py-12">
+      {onBack && (
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          className="absolute left-4 top-[calc(env(safe-area-inset-top)+1rem)] text-foreground"
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
       <div className="w-full max-w-md">
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary mb-4">

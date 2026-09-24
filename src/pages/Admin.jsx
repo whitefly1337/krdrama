@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Loader2, Plus, Trash2, Film, Upload, Save } from "lucide-react";
 
 export default function Admin() {
@@ -12,7 +12,11 @@ export default function Admin() {
   const load = async () => {
     setLoading(true);
     try {
-      const data = await base44.entities.Series.list();
+      const { data, error } = await supabase
+        .from("series")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
       setSeries(data);
     } catch (e) {
       console.error(e);
@@ -26,9 +30,16 @@ export default function Admin() {
   }, []);
 
   const loadEpisodes = async (sid) => {
-    const eps = await base44.entities.Episode.filter({ series_id: sid });
-    eps.sort((a, b) => a.episode_number - b.episode_number);
-    setEpisodes(eps);
+    const { data, error } = await supabase
+      .from("episodes")
+      .select("*, episode_media(video_source)")
+      .eq("series_id", sid)
+      .order("episode_number");
+    if (error) {
+      console.error(error);
+      return;
+    }
+    setEpisodes(data.map(({ episode_media, ...ep }) => ({ ...ep, video_source: episode_media?.video_source ?? "" })));
   };
 
   const blankSeries = () => ({
@@ -41,16 +52,34 @@ export default function Admin() {
     genre: "",
     is_featured: false,
     is_published: false,
-    total_episodes: 0,
+  });
+
+  // Only the editable columns; id/created_at/total_episodes are managed by the DB.
+  const seriesPayload = (s) => ({
+    title: s.title,
+    description: s.description,
+    poster_url: s.poster_url,
+    backdrop_url: s.backdrop_url,
+    trailer_url: s.trailer_url,
+    format: s.format,
+    genre: s.genre,
+    is_featured: s.is_featured,
+    is_published: s.is_published,
   });
 
   const saveSeries = async () => {
     if (!editing.title) return alert("Enter a title");
     try {
       if (editing.id) {
-        await base44.entities.Series.update(editing.id, editing);
+        const { error } = await supabase.from("series").update(seriesPayload(editing)).eq("id", editing.id);
+        if (error) throw error;
       } else {
-        const created = await base44.entities.Series.create(editing);
+        const { data: created, error } = await supabase
+          .from("series")
+          .insert(seriesPayload(editing))
+          .select()
+          .single();
+        if (error) throw error;
         setEditing({ ...created });
       }
       await load();
@@ -63,51 +92,82 @@ export default function Admin() {
 
   const deleteSeries = async (s) => {
     if (!confirm(`Delete "${s.title}"?`)) return;
-    await base44.entities.Series.delete(s.id);
+    const { error } = await supabase.from("series").delete().eq("id", s.id);
+    if (error) return alert("Delete error: " + error.message);
+    if (editing?.id === s.id) setEditing(null);
     await load();
   };
 
   const addEpisode = async () => {
     if (!editing?.id) return alert("Save the series first");
-    const num = episodes.length + 1;
-    const created = await base44.entities.Episode.create({
-      series_id: editing.id,
-      title: `Episode ${num}`,
-      episode_number: num,
-      video_url: "",
-      thumbnail_url: "",
-      duration: 0,
-      is_free: num === 1,
-    });
-    setEpisodes([...episodes, created]);
+    const num = episodes.reduce((max, e) => Math.max(max, e.episode_number), 0) + 1;
+    const { data: created, error } = await supabase
+      .from("episodes")
+      .insert({
+        series_id: editing.id,
+        title: `Episode ${num}`,
+        episode_number: num,
+        thumbnail_url: "",
+        duration: 0,
+        is_free: num === 1,
+      })
+      .select()
+      .single();
+    if (error) return alert("Error: " + error.message);
+    setEpisodes([...episodes, { ...created, video_source: "" }]);
   };
 
-  const updateEpisode = async (ep, field, value) => {
-    const updated = { ...ep, [field]: value };
-    setEpisodes(episodes.map((e) => (e.id === ep.id ? updated : e)));
+  const updateEpisode = (ep, field, value) => {
+    setEpisodes((prev) => prev.map((e) => (e.id === ep.id ? { ...e, [field]: value } : e)));
   };
 
   const saveEpisode = async (ep) => {
-    await base44.entities.Episode.update(ep.id, ep);
+    const { error } = await supabase
+      .from("episodes")
+      .update({
+        title: ep.title,
+        episode_number: ep.episode_number,
+        thumbnail_url: ep.thumbnail_url,
+        duration: ep.duration,
+        is_free: ep.is_free,
+      })
+      .eq("id", ep.id);
+    const { error: mediaError } = await supabase
+      .from("episode_media")
+      .upsert({ episode_id: ep.id, video_source: ep.video_source.trim() });
+    if (error || mediaError) return alert("Save error: " + (error || mediaError).message);
     alert("Episode saved");
   };
 
   const deleteEpisode = async (ep) => {
     if (!confirm("Delete episode?")) return;
-    await base44.entities.Episode.delete(ep.id);
+    const { error } = await supabase.from("episodes").delete().eq("id", ep.id);
+    if (error) return alert("Delete error: " + error.message);
     setEpisodes(episodes.filter((e) => e.id !== ep.id));
   };
 
+  const [uploading, setUploading] = useState(null);
+
+  // Images go to the public "media" bucket (stored as public URLs); videos go
+  // to the private "videos" bucket (stored as a path, served via signed URLs).
   const uploadFile = async (file, target, ep) => {
+    const bucket = target === "ep-video" ? "videos" : "media";
+    const ext = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "bin";
+    const path = `${crypto.randomUUID()}.${ext}`;
+    setUploading(target + (ep?.id ?? ""));
     try {
-      const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-      if (target === "series-poster") setEditing({ ...editing, poster_url: file_url });
-      else if (target === "series-backdrop") setEditing({ ...editing, backdrop_url: file_url });
-      else if (target === "ep-video") updateEpisode(ep, "video_url", file_url);
-      else if (target === "ep-thumb") updateEpisode(ep, "thumbnail_url", file_url);
+      const { error } = await supabase.storage.from(bucket).upload(path, file, { contentType: file.type });
+      if (error) throw error;
+      const value = bucket === "media" ? supabase.storage.from("media").getPublicUrl(path).data.publicUrl : path;
+      if (target === "series-poster") setEditing((prev) => ({ ...prev, poster_url: value }));
+      else if (target === "series-backdrop") setEditing((prev) => ({ ...prev, backdrop_url: value }));
+      else if (target === "ep-video") updateEpisode(ep, "video_source", value);
+      else if (target === "ep-thumb") updateEpisode(ep, "thumbnail_url", value);
     } catch (e) {
       console.error(e);
-      alert("File upload error");
+      alert("File upload error: " + (e.message || e));
+    } finally {
+      setUploading(null);
     }
   };
 
@@ -120,7 +180,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 pb-24">
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-[calc(env(safe-area-inset-top)+2rem)]">
       <h1 className="text-2xl font-bold text-white">Admin</h1>
       <p className="text-sm text-zinc-400">Manage series and episodes</p>
 
@@ -252,11 +312,11 @@ export default function Admin() {
                 <Field label="Number">
                   <input type="number" value={ep.episode_number} onChange={(e) => updateEpisode(ep, "episode_number", parseInt(e.target.value) || 1)} className={inputCls} />
                 </Field>
-                <Field label="Video (URL)">
+                <Field label="Video (storage path or https URL)">
                   <div className="flex gap-2">
-                    <input value={ep.video_url} onChange={(e) => updateEpisode(ep, "video_url", e.target.value)} className={inputCls} />
+                    <input value={ep.video_source} onChange={(e) => updateEpisode(ep, "video_source", e.target.value)} className={inputCls} />
                     <label className="flex shrink-0 cursor-pointer items-center gap-1 rounded-lg bg-white/10 px-3 text-xs text-white">
-                      <Film className="h-3 w-3" />
+                      {uploading === "ep-video" + ep.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Film className="h-3 w-3" />}
                       <input type="file" accept="video/*" className="hidden" onChange={(e) => e.target.files[0] && uploadFile(e.target.files[0], "ep-video", ep)} />
                     </label>
                   </div>

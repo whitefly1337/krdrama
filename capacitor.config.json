@@ -1,0 +1,22 @@
+{
+  "appId": "com.krdrama.app",
+  "appName": "KRDrama",
+  "webDir": "dist",
+  "backgroundColor": "#09090b",
+  "ios": {
+    "contentInset": "never",
+    "backgroundColor": "#09090b",
+    "allowsLinkPreview": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": false,
+      "backgroundColor": "#09090b",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "overlaysWebView": true
+    }
+  }
+}
